@@ -1,0 +1,9 @@
+node_modules
+dist
+*.tsbuildinfo
+
+# Secrets: API keys and Vercel tokens stay local. The example file documents the variables.
+.env*
+!.env.example
+
+.vercel

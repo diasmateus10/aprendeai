@@ -1,0 +1,95 @@
+import { useMemo, useState } from "react";
+import { buildLesson, type Lesson as LessonT } from "../data/course";
+import { ExerciseView, type Outcome } from "./Exercises";
+import { speak } from "../lib/speech";
+
+const HEARTS = 5;
+
+export interface LessonResult {
+  correct: number;
+  total: number;
+  speakingSeconds: number;
+  failed: boolean;
+}
+
+export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): void; onDone(r: LessonResult): void }) {
+  const initial = useMemo(() => buildLesson(lesson), [lesson]);
+  const [queue, setQueue] = useState(initial);
+  const [index, setIndex] = useState(0);
+  const [hearts, setHearts] = useState(HEARTS);
+  const [outcome, setOutcome] = useState<Outcome | null>(null);
+  const [correct, setCorrect] = useState(0);
+  const [speakingSeconds, setSpeakingSeconds] = useState(0);
+
+  const exercise = queue[index];
+  const progress = index / queue.length;
+
+  const answer = (o: Outcome) => {
+    setOutcome(o);
+    if (o.correct && !o.skipped) setCorrect((c) => c + 1);
+    if (!o.correct) {
+      setHearts((h) => h - 1);
+      // Missed items come back at the end of the lesson, like spaced review.
+      setQueue((q) => [...q, q[index]]);
+    }
+  };
+
+  const next = () => {
+    window.speechSynthesis?.cancel();
+    if (hearts <= 0) {
+      onDone({ correct, total: initial.length, speakingSeconds, failed: true });
+      return;
+    }
+    if (index + 1 >= queue.length) {
+      onDone({ correct, total: initial.length, speakingSeconds, failed: false });
+      return;
+    }
+    setOutcome(null);
+    setIndex((i) => i + 1);
+  };
+
+  return (
+    <div className="lesson">
+      <header className="lesson-top">
+        <button className="close" onClick={onExit} aria-label="Sair">
+          ✕
+        </button>
+        <div className="bar">
+          <div style={{ width: `${Math.max(progress * 100, 3)}%` }} />
+        </div>
+        <span className="hearts">❤️ {hearts}</span>
+      </header>
+
+      <main className="lesson-body">
+        <ExerciseView
+          key={index}
+          exercise={exercise}
+          locked={outcome !== null}
+          onAnswer={answer}
+          onSpeakingTime={(s) => setSpeakingSeconds((t) => t + s)}
+        />
+      </main>
+
+      {outcome && (
+        <footer className={`feedback ${outcome.correct ? "good" : "bad"}`}>
+          <div className="feedback-inner">
+            <div>
+              <strong>{outcome.message}</strong>
+              {outcome.solution && (
+                <p>
+                  {outcome.solution}{" "}
+                  <button className="mini" onClick={() => speak(outcome.solution!.split(" — ")[0].replace(/ \(.*\)$/, ""))}>
+                    🔊
+                  </button>
+                </p>
+              )}
+            </div>
+            <button className={`btn ${outcome.correct ? "primary" : "danger"}`} onClick={next} autoFocus>
+              Continuar
+            </button>
+          </div>
+        </footer>
+      )}
+    </div>
+  );
+}
