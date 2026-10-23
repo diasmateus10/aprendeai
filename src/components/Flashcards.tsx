@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { categoriesFor } from "../data/vocab";
+import { categoriesFor, imageFor } from "../data/vocab";
 import type { CardState, Level } from "../lib/progress";
 import { listen, speak, sttSupported, type ListenHandle } from "../lib/speech";
 
@@ -12,6 +12,19 @@ export interface Card {
   pt: string;
   category: string;
   verb: boolean;
+}
+
+/** The card's 3D illustration; falls back to the plain emoji if the image fails to load. */
+function CardPicture({ emoji }: { emoji: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) {
+    return (
+      <div className="picture-emoji" aria-label="imagem">
+        {emoji}
+      </div>
+    );
+  }
+  return <img className="picture-img" src={imageFor(emoji)} alt="imagem" width={180} height={180} onError={() => setFailed(true)} />;
 }
 
 /** Days until a card in each Leitner box comes back. */
@@ -227,9 +240,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
     <>
       <div className={`flashcard picture ${phase}`}>
         <span className="card-category">{card.category}</span>
-        <div className="picture-emoji" aria-label="imagem">
-          {card.emoji}
-        </div>
+        <CardPicture key={card.id} emoji={card.emoji} />
         {phase === "ask" ? (
           <>
             <p className="picture-question">{card.verb ? "Que ação é essa?" : "O que é isso?"} Fale em inglês.</p>

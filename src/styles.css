@@ -1445,6 +1445,16 @@ button:disabled {
   margin: 12px 0 4px;
 }
 
+.picture-img {
+  width: 180px;
+  height: 180px;
+  max-width: 60vw;
+  max-height: 60vw;
+  object-fit: contain;
+  margin: 8px 0 4px;
+  filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.35));
+}
+
 .picture-question {
   font-size: 18px;
   font-weight: 600;

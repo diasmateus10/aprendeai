@@ -1,7 +1,14 @@
 // Picture vocabulary for the flashcards: the learner sees an image and says the English word.
-// Emojis are the images: free, offline and readable on every phone.
+// Each emoji has a 3D illustration in public/flashcards (Microsoft Fluent Emoji, MIT license),
+// named by its codepoints; the emoji itself is the fallback.
 
 import type { Level } from "../lib/progress";
+
+/** "🛏️" → "/flashcards/1f6cf.webp" (variation selectors dropped). */
+export function imageFor(emoji: string): string {
+  const hex = [...emoji.replace(/️/g, "")].map((c) => c.codePointAt(0)!.toString(16)).join("-");
+  return `/flashcards/${hex}.webp`;
+}
 
 export interface VocabItem {
   emoji: string;
