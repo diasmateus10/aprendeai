@@ -74,25 +74,47 @@ const empty: Progress = {
   voiceName: null,
 };
 
+/** Fills in fields added after the progress was saved (locally or in the account). */
+export function fromSaved(saved: Partial<Progress> | null): Progress {
+  if (!saved || typeof saved !== "object") return { ...empty };
+  // Learners from before the Kids mode existed are adults.
+  const mode = saved.mode ?? (saved.level ? "adult" : null);
+  return { ...empty, ...saved, mode, kids: { ...emptyKids, ...saved.kids }, aiStyle: { ...DEFAULT_STYLE, ...saved.aiStyle } };
+}
+
 export function loadProgress(): Progress {
   try {
     const raw = localStorage.getItem(KEY);
-    if (!raw) return { ...empty };
-    const saved = JSON.parse(raw);
-    // Learners from before the Kids mode existed are adults.
-    const mode = saved.mode ?? (saved.level ? "adult" : null);
-    return { ...empty, ...saved, mode, kids: { ...emptyKids, ...saved.kids }, aiStyle: { ...DEFAULT_STYLE, ...saved.aiStyle } };
+    return raw ? fromSaved(JSON.parse(raw)) : { ...empty };
   } catch {
     return { ...empty };
   }
+}
+
+/** Set while signed in: every save is also sent to the account. */
+let onSave: ((p: Progress) => void) | null = null;
+
+export function onProgressSaved(fn: ((p: Progress) => void) | null) {
+  onSave = fn;
 }
 
 export function saveProgress(p: Progress) {
   try {
     localStorage.setItem(KEY, JSON.stringify(p));
   } catch {
-    // storage unavailable (private mode); progress lives only in memory
+    // storage unavailable (private mode); the account still keeps it
   }
+  onSave?.(p);
+}
+
+/** Forgets this device's copy, on sign-out, so the next person starts clean. */
+export function clearLocalProgress(): Progress {
+  try {
+    localStorage.removeItem(KEY);
+  } catch {
+    // nothing stored
+  }
+  return { ...empty };
 }
 
 export function dayKey(offsetDays = 0): string {

@@ -8,13 +8,18 @@ import { Conversation, TopicPicker } from "./components/Conversation";
 import { KidsApp } from "./components/Kids";
 import { ReminderCard } from "./components/Reminder";
 import { reportStudy } from "./lib/push";
+import { AuthScreen, NewPasswordScreen } from "./components/Auth";
+import { loadRemote, saveRemote, signOut, supabase, type Session } from "./lib/account";
 import type { Topic } from "./data/topics";
 import {
   addXp,
+  clearLocalProgress,
   dayKey,
   displayStreak,
+  fromSaved,
   GOALS,
   loadProgress,
+  onProgressSaved,
   recordLesson,
   saveProgress,
   todayXp,
@@ -39,9 +44,59 @@ export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress);
   const [screen, setScreen] = useState<Screen>(() => (progress.level ? { name: "path" } : { name: "welcome" }));
 
+  // undefined while the saved session is being checked; null when signed out.
+  const [session, setSession] = useState<Session | null | undefined>(undefined);
+  /** The account whose progress is loaded here; until it matches the session, a loading screen shows. */
+  const [syncedUser, setSyncedUser] = useState<string | null>(null);
+  /** Opened the "new password" link from the e-mail. */
+  const [recovery, setRecovery] = useState(false);
+
   const update = (p: Progress) => {
     setProgress(p);
     saveProgress(p);
+  };
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setSession(data.session));
+    const { data } = supabase.auth.onAuthStateChange((event, s) => {
+      if (event === "PASSWORD_RECOVERY") setRecovery(true);
+      setSession(s);
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
+  // On sign-in, the account's progress replaces this device's copy; a brand-new account starts from
+  // what the device already had. From then on every save also goes to the account.
+  const userId = session?.user.id ?? null;
+  useEffect(() => {
+    if (!userId) {
+      onProgressSaved(null);
+      setSyncedUser(null);
+      return;
+    }
+    let cancelled = false;
+    const start = (p: Progress) => {
+      if (cancelled) return;
+      onProgressSaved((next) => saveRemote(userId, next));
+      saveProgress(p);
+      setProgress(p);
+      setScreen(p.level ? { name: "path" } : { name: "welcome" });
+      setSyncedUser(userId);
+    };
+    loadRemote(userId)
+      .then((remote) => start(remote ? fromSaved(remote) : loadProgress()))
+      // Offline: keep going with this device's copy (it belongs to this account); it uploads on the next change.
+      .catch(() => start(loadProgress()));
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
+  const logout = async () => {
+    await signOut();
+    onProgressSaved(null);
+    setProgress(clearLocalProgress());
+    setScreen({ name: "welcome" });
   };
 
   // The chosen accent drives every English voice in the app, not just the AI chat.
@@ -67,9 +122,23 @@ export default function App() {
     if (progress.mode === "adult" && progress.lastDay) reportStudy(progress.lastDay, progress.streak);
   }, [progress.mode, progress.lastDay, progress.streak]);
 
+  if (recovery) return <NewPasswordScreen onDone={() => setRecovery(false)} />;
+  if (session === undefined || (session && syncedUser !== session.user.id)) {
+    return (
+      <div className="result">
+        <div className="result-card">
+          <div className="mascot big">🦜</div>
+          <p className="hint">Carregando…</p>
+        </div>
+      </div>
+    );
+  }
+  if (!session) return <AuthScreen />;
+
   if (progress.mode === "kids") {
     return (
       <KidsApp
+        account={{ email: session.user.email ?? "", onSignOut: logout }}
         progress={progress}
         onProgress={(change) =>
           setProgress((p) => {
@@ -420,6 +489,13 @@ export default function App() {
           );
         })}
       </main>
+
+      <footer className="account-bar">
+        <span>{session.user.email}</span>
+        <button className="link" onClick={logout}>
+          Sair da conta
+        </button>
+      </footer>
     </div>
   );
 }

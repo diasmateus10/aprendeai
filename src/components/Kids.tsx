@@ -94,11 +94,14 @@ export function KidsApp({
   progress,
   onProgress,
   onAdultMode,
+  account,
 }: {
   progress: Progress;
   /** Receives an updater so callbacks from finished activities never use a stale progress. */
   onProgress(update: (p: Progress) => Progress): void;
   onAdultMode(): void;
+  /** Signed-in account, shown (with sign-out) in the parents' area. */
+  account: { email: string; onSignOut(): void };
 }) {
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const kids = progress.kids;
@@ -235,7 +238,9 @@ export function KidsApp({
       );
       break;
     case "parents":
-      page = <ParentPanel kids={kids} band={band} onAge={() => setScreen({ name: "age" })} onAdultMode={onAdultMode} onExit={home} />;
+      page = (
+        <ParentPanel kids={kids} band={band} account={account} onAge={() => setScreen({ name: "age" })} onAdultMode={onAdultMode} onExit={home} />
+      );
       break;
     case "done": {
       const unlocked = Math.floor(kids.stars / STARS_PER_STICKER) - Math.floor(startStars.current / STARS_PER_STICKER);
@@ -867,12 +872,14 @@ const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 function ParentPanel({
   kids,
   band,
+  account,
   onAge,
   onAdultMode,
   onExit,
 }: {
   kids: KidsProgress;
   band: AgeBand;
+  account: { email: string; onSignOut(): void };
   onAge(): void;
   onAdultMode(): void;
   onExit(): void;
@@ -964,7 +971,7 @@ function ParentPanel({
       <div className="card">
         <div className="card-label">Privacidade</div>
         <p className="hint small">
-          O progresso fica salvo só neste aparelho. Para entender a fala, o navegador (Chrome ou Edge) envia o áudio ao serviço de
+          O progresso fica salvo na sua conta ({account.email}). Para entender a fala, o navegador (Chrome ou Edge) envia o áudio ao serviço de
           reconhecimento de voz do Google ou da Microsoft, e o texto da conversa com o Kiko vai para a IA para gerar as respostas.
         </p>
       </div>
@@ -972,6 +979,9 @@ function ParentPanel({
       <div className="result-actions">
         <button className="btn secondary" onClick={onAdultMode}>
           Mudar para o modo adulto
+        </button>
+        <button className="btn secondary" onClick={account.onSignOut}>
+          Sair da conta
         </button>
         <button className="btn primary" onClick={onExit}>
           Voltar para as crianças

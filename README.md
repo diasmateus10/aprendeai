@@ -37,6 +37,7 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **Gamificação:** XP, sequência de dias, meta diária com anel de progresso, semana em bolinhas, vidas e estrelas por lição.
 - **Voz natural:** o app escolhe a voz mais natural disponível no aparelho e permite trocar, com prévia.
 - **Mobile first:** layout pensado para celular e publicado com HTTPS, o que permite usar o microfone.
+- **Conta com e-mail e senha:** o progresso fica salvo na conta e aparece em qualquer aparelho. No primeiro login, o progresso que já estava no aparelho vai para a conta. Dá para recuperar a senha por e-mail.
 - **Lembrete diário da ofensiva:** quem ativa recebe uma notificação às 19h nos dias em que ainda não estudou ("🔥 Sua ofensiva de 5 dias está em risco!"). No iPhone, o app precisa estar na Tela de Início. Os dados ficam no Supabase (só o endereço da notificação e o último dia de estudo), e uma tarefa diária da Vercel envia os avisos.
 
 ### Modo Kids
@@ -66,8 +67,9 @@ Escolhido na primeira tela ("Quem vai aprender?") ou pelo card **Modo Kids**. Te
 | IA | Claude, da Anthropic (`@anthropic-ai/sdk`), com streaming |
 | Backend | Função serverless na Vercel (`api/chat.ts`) |
 | Hospedagem | Vercel |
-| Dados do aluno | `localStorage` (progresso fica no próprio aparelho) |
-| Banco de dados | Supabase (lembretes e limites de uso por dia) |
+| Contas | Supabase Auth (e-mail e senha) |
+| Dados do aluno | Supabase: progresso de cada conta (curso, Modo Kids, ajustes), com cópia local para abrir rápido |
+| Banco de dados | Supabase com RLS (progresso, lembretes e limites de uso por dia) |
 | Notificações | Web Push (service worker + `web-push`) e Vercel Cron |
 
 ### Detalhes técnicos

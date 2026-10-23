@@ -2116,3 +2116,75 @@ button:disabled {
 .reminder-card p {
   margin: 4px 0 0;
 }
+
+/* Accounts */
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+}
+
+.auth-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 4px;
+  margin: 16px 0 12px;
+}
+
+.auth-tabs button {
+  border: none;
+  background: none;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 10px;
+  border-radius: 999px;
+}
+
+.auth-tabs button.on {
+  background: var(--primary);
+  color: var(--on-primary);
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.auth-form input {
+  font: inherit;
+  padding: 13px 16px;
+  border-radius: 14px;
+  border: 2px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.auth-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.auth-form p {
+  margin: 0;
+  text-align: left;
+}
+
+.auth-info {
+  color: var(--good);
+  font-size: 14px;
+}
+
+.account-bar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 24px 16px calc(24px + env(safe-area-inset-bottom));
+  color: var(--muted);
+  font-size: 14px;
+}
