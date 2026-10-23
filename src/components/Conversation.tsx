@@ -22,7 +22,7 @@ function splitTip(text: string): { said: string; tip: string | null } {
 }
 
 async function streamChat(
-  body: { topic: string; level: string; mode: "chat" | "feedback"; messages: Turn[]; style: AiStyle },
+  body: { topic: string; level: string; mode: "chat" | "feedback"; messages: Turn[]; style: AiStyle; age?: string },
   onText: (soFar: string) => void,
   signal: AbortSignal,
 ): Promise<string> {
@@ -151,6 +151,7 @@ export function Conversation({
   onExit,
   onFinish,
   seconds = SESSION_SECONDS,
+  age,
 }: {
   topic: Topic;
   level: Level;
@@ -159,6 +160,8 @@ export function Conversation({
   onFinish(seconds: number, userTurns: number): void;
   /** Session length; the Kids mode uses a shorter one. */
   seconds?: number;
+  /** Kids mode age band, so the mascot talks at the child's level. */
+  age?: string;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -267,7 +270,7 @@ export function Conversation({
     setPhase("thinking");
     try {
       const reply = await streamChat(
-        { topic: topic.id, level, mode: "chat", messages: history, style },
+        { topic: topic.id, level, mode: "chat", messages: history, style, age },
         (t) => setStreaming(t),
         abort.current.signal,
       );
@@ -324,7 +327,7 @@ export function Conversation({
     const spent = Math.min(seconds, Math.round((Date.now() - started.current) / 1000));
     onFinish(spent, turns.filter((t) => t.role === "user").length);
     try {
-      await streamChat({ topic: topic.id, level, mode: "feedback", messages: turns, style }, (t) => setFeedback(t), abort.current.signal);
+      await streamChat({ topic: topic.id, level, mode: "feedback", messages: turns, style, age }, (t) => setFeedback(t), abort.current.signal);
     } catch {
       setFeedback("Não foi possível gerar o feedback agora.");
     }

@@ -95,7 +95,7 @@ export default function App() {
             <button className="mode-choice kids-choice" onClick={() => update({ ...progress, mode: "kids" })}>
               <span>🧒</span>
               <strong>Uma criança</strong>
-              <span className="hint">Modo Kids, de 6 a 10 anos</span>
+              <span className="hint">Modo Kids, com atividades por idade</span>
             </button>
           </div>
         </div>
@@ -555,7 +555,7 @@ function Dashboard({
         <button className="activity" onClick={onKids}>
           <span className="act-icon">🧒</span>
           <strong>Modo Kids</strong>
-          <span>Para crianças de 6 a 10 anos</span>
+          <span>Atividades por faixa etária</span>
         </button>
       </div>
     </section>

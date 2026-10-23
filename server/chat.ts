@@ -54,18 +54,42 @@ Palavras novas: up to five useful English words or expressions from the conversa
 Be encouraging and concrete.`;
 
 // Kids mode: the learner is a child, so the mascot's prompt is fixed (no persona choice) and safety comes first.
-function kidsPrompt(topicId: string): string {
+// How Kiko talks to each age band; babies (0-3) have no conversation.
+const KIDS_AGE_STYLE: Record<string, { ages: string; talk: string; corrections: string }> = {
+  "3-6": {
+    ages: "3 to 6, who can't read yet",
+    talk: `- Tiny English: the most common words, at most 4 words per sentence. Repeat the key word ("A dog! A big dog!").
+- Reply in 1 short sentence, then ask one tiny question: yes/no, or with two choices ("Red or blue?").
+- Be very warm and cheerful, like a kids' TV show host. Praise every try ("Yay!", "Super!").`,
+    corrections: `- Never write correction lines: the child can't read. When a sentence is wrong, just say the right version happily in your reply ("Yes! I like dogs!").`,
+  },
+  "6-10": {
+    ages: "6 to 10",
+    talk: `- Very simple English: common words, present tense, at most 6 words per sentence.
+- Reply in 1 or 2 short sentences, then ask one easy question: yes/no, or with two choices ("Do you like cats or dogs?").
+- Be warm, playful and patient. Praise every try ("Great job!", "Wow, cool!").`,
+    corrections: `- Corrections: only when the child's sentence is clearly wrong, add one last line that starts with "💡", in very simple Brazilian Portuguese, with the right sentence, e.g. 💡 Fala assim: "I like cats." Never make the child feel bad.`,
+  },
+  "10+": {
+    ages: "10 to 13",
+    talk: `- Simple, natural English: everyday words, present, past and future, at most 12 words per sentence.
+- Reply in 2 short sentences, then ask one question; sometimes an open one ("Why do you like it?", "What did you do yesterday?") so they answer with full sentences.
+- Be friendly and fun, like a cool older cousin, not childish. Praise good answers specifically.`,
+    corrections: `- Corrections: when a sentence has a clear mistake, add one last line that starts with "💡", in simple Brazilian Portuguese, with the right sentence and a very short reason, e.g. 💡 Fala assim: "I went to the park." (passado de go é went). Never make the learner feel bad.`,
+  },
+};
+
+function kidsPrompt(topicId: string, age: string): string {
   const topic = KIDS_TOPICS.find((t) => t.id === topicId)!;
-  return `You are Kiko, a friendly cartoon parrot who helps Brazilian children aged 6 to 10 practice speaking English in a learning app.
+  const style = KIDS_AGE_STYLE[age] ?? KIDS_AGE_STYLE["6-10"];
+  return `You are Kiko, a friendly cartoon parrot who helps Brazilian children aged ${style.ages} practice speaking English in a learning app.
 Theme: ${topic.scenario}
 
 How you talk:
-- Very simple English: common words, present tense, at most 6 words per sentence.
-- Reply in 1 or 2 short sentences, then ask one easy question: yes/no, or with two choices ("Do you like cats or dogs?").
-- Be warm, playful and patient. Praise every try ("Great job!", "Wow, cool!").
+${style.talk}
 - Your words are read aloud: plain text only, no markdown, lists or emojis.
 - The child's message is a speech-recognition transcript of a young learner: it may be broken or partly in Portuguese. Guess kindly what they meant. If they speak Portuguese, say it in English and invite them to repeat it.
-- Corrections: only when the child's sentence is clearly wrong, add one last line that starts with "💡", in very simple Brazilian Portuguese, with the right sentence, e.g. 💡 Fala assim: "I like cats." Never make the child feel bad.
+${style.corrections}
 
 Safety rules, which come before everything else:
 - Talk only about child-friendly things. Never talk about violence, weapons, scary things, death, romance or dating, drugs, alcohol, news, politics, religion or money.
@@ -91,6 +115,8 @@ type ChatBody = {
   messages: { role: "user" | "assistant"; content: string }[];
   /** Untrusted; stylePrompt() only uses known option ids. */
   style?: Partial<Record<keyof AiStyle, unknown>>;
+  /** Kids mode age band; unknown values fall back to 6-10. */
+  age: string;
 };
 
 function parseBody(raw: string): ChatBody | null {
@@ -104,7 +130,7 @@ function parseBody(raw: string): ChatBody | null {
       return { role: m.role, content: m.content.slice(0, MAX_CHARS) };
     });
     const style = b.style && typeof b.style === "object" ? b.style : undefined;
-    return { topic: b.topic, level: String(b.level), mode: b.mode, messages, style };
+    return { topic: b.topic, level: String(b.level), mode: b.mode, messages, style, age: String(b.age ?? "") };
   } catch {
     return null;
   }
@@ -178,7 +204,7 @@ export async function handleChat(client: Anthropic, rawBody: string, ip: string,
   let messages: Anthropic.Beta.BetaMessageParam[];
   let system: string;
   if (body.mode === "chat") {
-    system = kids ? kidsPrompt(body.topic) : systemPrompt(body.topic, body.level, body.style);
+    system = kids ? kidsPrompt(body.topic, body.age) : systemPrompt(body.topic, body.level, body.style);
     // The opening turn has no learner message yet; a neutral cue starts the scenario.
     messages = [{ role: "user", content: "(The learner is ready. Start the conversation.)" }, ...body.messages];
   } else {

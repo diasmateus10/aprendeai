@@ -38,9 +38,16 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **Voz natural:** o app escolhe a voz mais natural disponível no aparelho e permite trocar, com prévia.
 - **Mobile first:** layout pensado para celular e publicado com HTTPS, o que permite usar o microfone.
 
-### Modo Kids (6 a 10 anos)
+### Modo Kids
 
-Escolhido na primeira tela ("Quem vai aprender?") ou pelo card **Modo Kids**. Tem visual claro e colorido e o papagaio **Kiko** como mascote.
+Escolhido na primeira tela ("Quem vai aprender?") ou pelo card **Modo Kids**. Tem visual claro e colorido e o papagaio **Kiko** como mascote. Na primeira visita, o adulto escolhe a **faixa etária**, que ajusta as atividades e o jeito do Kiko falar:
+
+| | 0 a 3 | 3 a 6 | 6 a 10 | Mais de 10 |
+|---|---|---|---|---|
+| Cartões | Livro de figuras (ver e ouvir) | Ver e falar | Ver e falar | Mais palavras (inclui as do curso básico) |
+| Ouça e toque | 2 figuras | 3 figuras | 4 figuras | 4 figuras |
+| Rimas | Só ouvir e cantar junto | Repetir (tolerante) | Repetir | Repetir (mais exigente) |
+| Kiko | Desligado | Até 4 palavras por frase, 2 min | Frases curtas, 3 min | Frases maiores, perguntas abertas, 5 min, temas extras |
 
 - **Cartões:** 85 palavras com ilustração 3D em 8 categorias (animais, cores, comidas, brinquedos, corpo, família, números e natureza). A criança vê a figura e fala o nome.
 - **Ouça e toque:** o app fala uma palavra e a criança toca na figura certa entre quatro da mesma categoria.

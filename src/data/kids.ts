@@ -265,6 +265,8 @@ export interface KidsTopic {
   description: string;
   /** Theme given to the AI mascot. */
   scenario: string;
+  /** Only offered to older children. */
+  olderOnly?: boolean;
 }
 
 // Ids start with "kids-" so the server applies the children's prompt and safety rules.
@@ -304,10 +306,58 @@ export const KIDS_TOPICS: KidsTopic[] = [
     description: "Acordar, comer, brincar, dormir",
     scenario: "My day: simple daily routine (wake up, breakfast, play, bath, sleep) and the weather today.",
   },
+  {
+    id: "kids-school",
+    title: "Escola",
+    emoji: "🎒",
+    description: "Matérias, amigos e o recreio",
+    scenario: "School: favorite subjects, what the child does at break time, and what they like or find hard at school (never ask the school's name).",
+    olderOnly: true,
+  },
+  {
+    id: "kids-hobbies",
+    title: "Hobbies e jogos",
+    emoji: "🎮",
+    description: "Games, desenhos, filmes e músicas",
+    scenario: "Hobbies: video games, cartoons, movies, music, drawing and sports the child enjoys, and why they like them.",
+    olderOnly: true,
+  },
 ];
 
-/** A kids' conversation is shorter than an adult one. */
-export const KIDS_SESSION_SECONDS = 3 * 60;
+export type KidsAge = "0-3" | "3-6" | "6-10" | "10+";
+
+export interface AgeBand {
+  id: KidsAge;
+  label: string;
+  emoji: string;
+  description: string;
+  /** Flashcards ask the child to say the word; the youngest only look and listen. */
+  speak: boolean;
+  /** Pictures to choose from in "Ouça e toque". */
+  options: number;
+  /** Conversation with Kiko, in seconds; 0 hides it (babies don't talk yet). */
+  chatSeconds: number;
+  /** Share of a rhyme line that must be heard right; younger children get more slack. */
+  pass: number;
+  /** Adds the adult course's beginner words to the cards. */
+  moreWords: boolean;
+}
+
+export const AGES: AgeBand[] = [
+  { id: "0-3", label: "0 a 3 anos", emoji: "👶", description: "Ouvir, ver e tocar, junto com um adulto", speak: false, options: 2, chatSeconds: 0, pass: 0, moreWords: false },
+  { id: "3-6", label: "3 a 6 anos", emoji: "🧒", description: "Ainda não lê: figuras, sons e palavras curtas", speak: true, options: 3, chatSeconds: 2 * 60, pass: 0.5, moreWords: false },
+  { id: "6-10", label: "6 a 10 anos", emoji: "👧", description: "Lê um pouco: frases curtas e conversa simples", speak: true, options: 4, chatSeconds: 3 * 60, pass: 0.6, moreWords: false },
+  { id: "10+", label: "Mais de 10 anos", emoji: "🧑", description: "Lê bem: mais palavras, frases maiores e desafios", speak: true, options: 4, chatSeconds: 5 * 60, pass: 0.7, moreWords: true },
+];
+
+export function ageBand(age: KidsAge | null): AgeBand {
+  return AGES.find((a) => a.id === age) ?? AGES[2];
+}
+
+/** Chat themes for an age: the older ones also get school and hobbies. */
+export function topicsFor(age: KidsAge | null): KidsTopic[] {
+  return KIDS_TOPICS.filter((t) => !t.olderOnly || age === "10+");
+}
 
 /** Unlocked in this order, one every STARS_PER_STICKER stars. */
 export const STICKERS = ["🦄", "🚀", "🌈", "🦖", "🐬", "🍦", "🐙", "🦊", "🐼", "🏰", "🎨", "🪐", "🐉", "🦋", "🎈", "👑"];

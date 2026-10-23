@@ -1,6 +1,7 @@
 // Learner progress persisted in localStorage.
 
 import { DEFAULT_STYLE, type AiStyle } from "../data/aiStyle";
+import type { KidsAge } from "../data/kids";
 
 export type Level = "iniciante" | "basico" | "intermediario" | "avancado";
 
@@ -12,6 +13,8 @@ export interface CardState {
 
 /** Progress in the Kids mode, kept apart from the adult course. */
 export interface KidsProgress {
+  /** Chosen by the adult on the first visit; null until then. */
+  age: KidsAge | null;
   stars: number;
   /** Stars earned per day (YYYY-MM-DD), for the parents' week view. */
   daily: Record<string, number>;
@@ -53,7 +56,7 @@ export const GOALS = [
 
 const KEY = "papagaio.progress.v1";
 
-const emptyKids: KidsProgress = { stars: 0, daily: {}, cards: {}, rhymes: {}, speakingSeconds: 0, chats: 0, games: 0 };
+const emptyKids: KidsProgress = { age: null, stars: 0, daily: {}, cards: {}, rhymes: {}, speakingSeconds: 0, chats: 0, games: 0 };
 
 const empty: Progress = {
   mode: null,

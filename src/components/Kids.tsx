@@ -1,16 +1,19 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
-  KIDS_SESSION_SECONDS,
-  KIDS_TOPICS,
+  ageBand,
+  AGES,
   KIDS_VOCAB,
   MASCOT,
   RHYMES,
   STARS_PER_STICKER,
   STICKERS,
+  topicsFor,
+  type AgeBand,
+  type KidsAge,
   type KidsTopic,
   type Rhyme,
 } from "../data/kids";
-import { imageFor, type VocabItem } from "../data/vocab";
+import { categoriesFor, imageFor, type VocabItem } from "../data/vocab";
 import { DEFAULT_STYLE } from "../data/aiStyle";
 import { addStars, dayKey, type KidsProgress, type Progress } from "../lib/progress";
 import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
@@ -30,12 +33,19 @@ type Screen =
   /** Parent check before the parents' area, or before leaving the Kids mode. */
   | { name: "gate"; then: "parents" | "adult" }
   | { name: "parents" }
+  | { name: "book"; cards: Card[] }
+  | { name: "age" }
   | { name: "done"; title: string; stars: number; again?: Screen };
 
-/** Every kids picture card, categories interleaved so a session mixes topics. */
-function kidsDeck(): Card[] {
-  const perCategory = KIDS_VOCAB.map((c) =>
-    c.items.map((it) => ({
+/** Every picture card for an age, categories interleaved so a session mixes topics. */
+function kidsDeck(band: AgeBand): Card[] {
+  // Older children also get the adult course's beginner words (food, home, actions, clothes...).
+  const extra = band.moreWords
+    ? categoriesFor("basico").map((c) => ({ id: c.id, title: c.title, question: c.verbs ? "Que ação é essa?" : "O que é isso?", items: c.items }))
+    : [];
+  const seen = new Set<string>();
+  const perCategory = [...KIDS_VOCAB, ...extra].map((c) =>
+    c.items.filter((it) => !seen.has(it.en) && seen.add(it.en)).map((it) => ({
       id: `kids:${c.id}:${it.en}`,
       emoji: it.emoji,
       en: it.en,
@@ -53,7 +63,6 @@ function kidsDeck(): Card[] {
   return deck;
 }
 
-const KIDS_DECK = kidsDeck();
 const CARDS_PER_SESSION = 8;
 
 /** A 3D illustration for an emoji, with the emoji itself as the fallback. */
@@ -93,6 +102,8 @@ export function KidsApp({
 }) {
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const kids = progress.kids;
+  const band = ageBand(kids.age);
+  const deck = useMemo(() => kidsDeck(band), [band]);
   // Stars when the current activity started, to announce stickers unlocked during it.
   const startStars = useRef(kids.stars);
 
@@ -107,8 +118,41 @@ export function KidsApp({
 
   const home = () => setScreen({ name: "home" });
 
+  const setAge = (age: KidsAge) => onProgress((p) => ({ ...p, kids: { ...p.kids, age } }));
+
+  // The adult who opened the Kids mode picks the child's age once; it shapes every activity.
+  if (kids.age === null || screen.name === "age") {
+    return (
+      <div className="kids">
+        <AgePicker
+          value={kids.age}
+          onPick={(age) => {
+            setAge(age);
+            home();
+          }}
+          onBack={kids.age === null ? onAdultMode : home}
+        />
+      </div>
+    );
+  }
+
   let page: JSX.Element;
   switch (screen.name) {
+    case "book":
+      page = (
+        <PictureBook
+          cards={screen.cards}
+          onSeen={(id) =>
+            onProgress((p) => {
+              const next = addStars(p, 1);
+              return { ...next, kids: { ...next.kids, cards: { ...next.kids.cards, [id]: { box: 1, due: dayKey(1) } } } };
+            })
+          }
+          onDone={() => setScreen({ name: "done", title: "Você viu todas as figuras!", stars: 3, again: { name: "book", cards: screen.cards } })}
+          onExit={home}
+        />
+      );
+      break;
     case "flashcards":
       page = (
         <Flashcards
@@ -128,6 +172,7 @@ export function KidsApp({
     case "listen":
       page = (
         <ListenTap
+          options={band.options}
           onStar={() => star(1)}
           onExit={home}
           onDone={(right) => {
@@ -145,6 +190,8 @@ export function KidsApp({
       page = (
         <RhymePlay
           rhyme={rhyme}
+          listenOnly={!band.speak}
+          pass={band.pass}
           onLine={(seconds) => star(1, (k) => ({ speakingSeconds: k.speakingSeconds + seconds }))}
           onSeconds={(seconds) => star(0, (k) => ({ speakingSeconds: k.speakingSeconds + seconds }))}
           onExit={() => setScreen({ name: "rhymes" })}
@@ -157,7 +204,7 @@ export function KidsApp({
       break;
     }
     case "topics":
-      page = <KidsTopics onPick={(topic) => setScreen({ name: "chat", topic })} onExit={home} />;
+      page = <KidsTopics band={band} onPick={(topic) => setScreen({ name: "chat", topic })} onExit={home} />;
       break;
     case "chat":
       page = (
@@ -165,7 +212,8 @@ export function KidsApp({
           topic={screen.topic}
           level="iniciante"
           style={{ ...DEFAULT_STYLE, accent: progress.aiStyle.accent }}
-          seconds={KIDS_SESSION_SECONDS}
+          seconds={band.chatSeconds}
+          age={band.id}
           onExit={home}
           // 1 star per sentence spoken, up to 10 per conversation.
           onFinish={(seconds, turns) =>
@@ -187,7 +235,7 @@ export function KidsApp({
       );
       break;
     case "parents":
-      page = <ParentPanel kids={kids} onAdultMode={onAdultMode} onExit={home} />;
+      page = <ParentPanel kids={kids} band={band} onAge={() => setScreen({ name: "age" })} onAdultMode={onAdultMode} onExit={home} />;
       break;
     case "done": {
       const unlocked = Math.floor(kids.stars / STARS_PER_STICKER) - Math.floor(startStars.current / STARS_PER_STICKER);
@@ -224,7 +272,11 @@ export function KidsApp({
       page = (
         <KidsHome
           kids={kids}
-          onFlashcards={() => setScreen({ name: "flashcards", cards: sessionCards(KIDS_DECK, kids.cards).slice(0, CARDS_PER_SESSION) })}
+          band={band}
+          onFlashcards={() => {
+            const cards = sessionCards(deck, kids.cards).slice(0, CARDS_PER_SESSION);
+            setScreen(band.speak ? { name: "flashcards", cards } : { name: "book", cards });
+          }}
           onListen={() => setScreen({ name: "listen" })}
           onRhymes={() => setScreen({ name: "rhymes" })}
           onChat={() => setScreen({ name: "topics" })}
@@ -239,6 +291,7 @@ export function KidsApp({
 
 function KidsHome({
   kids,
+  band,
   onFlashcards,
   onListen,
   onRhymes,
@@ -248,6 +301,7 @@ function KidsHome({
   onLeave,
 }: {
   kids: KidsProgress;
+  band: AgeBand;
   onFlashcards(): void;
   onListen(): void;
   onRhymes(): void;
@@ -260,10 +314,13 @@ function KidsHome({
   const toNext = STARS_PER_STICKER - (kids.stars % STARS_PER_STICKER);
   const hello = "Hi! I am Kiko. Let's play in English!";
   const tiles = [
-    { emoji: "🃏", title: "Cartões", sub: "Veja e fale", color: "#ff8a5b", onClick: onFlashcards },
+    band.speak
+      ? { emoji: "🃏", title: "Cartões", sub: "Veja e fale", color: "#ff8a5b", onClick: onFlashcards }
+      : { emoji: "📖", title: "Livro de figuras", sub: "Veja e ouça", color: "#ff8a5b", onClick: onFlashcards },
     { emoji: "👂", title: "Ouça e toque", sub: "Ache a figura", color: "#4cb8ff", onClick: onListen },
-    { emoji: "🎵", title: "Rimas", sub: "Ouça e repita", color: "#b57bff", onClick: onRhymes },
-    { emoji: MASCOT, title: "Conversar", sub: "Fale com o Kiko", color: "#3fcf8e", onClick: onChat },
+    { emoji: "🎵", title: band.speak ? "Rimas" : "Músicas", sub: band.speak ? "Ouça e repita" : "Ouça e cante junto", color: "#b57bff", onClick: onRhymes },
+    // Babies do not talk yet: no conversation for 0-3.
+    ...(band.chatSeconds ? [{ emoji: MASCOT, title: "Conversar", sub: "Fale com o Kiko", color: "#3fcf8e", onClick: onChat }] : []),
   ];
   return (
     <div className="kids-home">
@@ -296,8 +353,14 @@ function KidsHome({
       {!sttSupported && <div className="banner">Para falar com o Kiko, abra no Chrome ou no Edge. Os jogos de ouvir funcionam em qualquer navegador.</div>}
 
       <main className="kids-tiles">
-        {tiles.map((t) => (
-          <button key={t.title} className="kids-tile" style={{ background: t.color }} onClick={t.onClick}>
+        {tiles.map((t, i) => (
+          <button
+            key={t.title}
+            // With an odd number of activities (no chat for 0-3), the last one spans the row.
+            className={`kids-tile ${tiles.length % 2 && i === tiles.length - 1 ? "full" : ""}`}
+            style={{ background: t.color }}
+            onClick={t.onClick}
+          >
             <Pic emoji={t.emoji} size={72} />
             <strong>{t.title}</strong>
             <span>{t.sub}</span>
@@ -335,17 +398,27 @@ interface Round {
   options: VocabItem[];
 }
 
-/** Each round: one word spoken, four pictures from the same category (colors with colors, animals with animals). */
-function buildRounds(): Round[] {
+/** Each round: one word spoken, 2 to 4 pictures (by age) from the same category: colors with colors, animals with animals. */
+function buildRounds(options: number): Round[] {
   return Array.from({ length: LISTEN_ROUNDS }, () => {
     const cat = KIDS_VOCAB[Math.floor(Math.random() * KIDS_VOCAB.length)];
     const [answer, ...rest] = shuffle(cat.items);
-    return { answer, options: shuffle([answer, ...rest.slice(0, 3)]) };
+    return { answer, options: shuffle([answer, ...rest.slice(0, options - 1)]) };
   });
 }
 
-function ListenTap({ onStar, onDone, onExit }: { onStar(): void; onDone(right: number): void; onExit(): void }) {
-  const rounds = useMemo(buildRounds, []);
+function ListenTap({
+  options,
+  onStar,
+  onDone,
+  onExit,
+}: {
+  options: number;
+  onStar(): void;
+  onDone(right: number): void;
+  onExit(): void;
+}) {
+  const rounds = useMemo(() => buildRounds(options), [options]);
   const [i, setI] = useState(0);
   const [wrong, setWrong] = useState<string[]>([]);
   const [solved, setSolved] = useState(false);
@@ -452,18 +525,22 @@ function RhymeList({ best, onPick, onExit }: { best: Record<string, number>; onP
   );
 }
 
-/** Speech is scored more leniently for children than for adults. */
-const KIDS_PASS = 0.6;
 const LINE_TRIES = 2;
 
 function RhymePlay({
   rhyme,
+  listenOnly,
+  pass,
   onLine,
   onSeconds,
   onDone,
   onExit,
 }: {
   rhyme: Rhyme;
+  /** The youngest just listen and sing along: no microphone, one star per line. */
+  listenOnly: boolean;
+  /** Share of the line that must be heard right; lower for younger children. */
+  pass: number;
   /** A line repeated well: one star and the seconds spent speaking. */
   onLine(seconds: number): void;
   /** Speaking time on a line that wasn't passed. */
@@ -480,8 +557,8 @@ function RhymePlay({
   const passed = useRef(0);
   const mic = useRef<ListenHandle | null>(null);
   const line = rhyme.lines[i];
-  const ok = score !== null && score.accuracy >= KIDS_PASS;
-  const canGoOn = ok || tries >= LINE_TRIES || !sttSupported;
+  const ok = score !== null && score.accuracy >= pass;
+  const canGoOn = listenOnly || ok || tries >= LINE_TRIES || !sttSupported;
 
   useEffect(() => {
     const t = setTimeout(() => speak(line.en), 400);
@@ -508,7 +585,7 @@ function RhymePlay({
         const seconds = (Date.now() - began) / 1000;
         setScore(s);
         setTries((t) => t + 1);
-        if (s.accuracy >= KIDS_PASS) {
+        if (s.accuracy >= pass) {
           passed.current++;
           onLine(seconds);
           speak("Great job!");
@@ -526,6 +603,10 @@ function RhymePlay({
 
   const next = () => {
     mic.current?.abort();
+    if (listenOnly) {
+      passed.current++;
+      onLine(0);
+    }
     if (i + 1 >= rhyme.lines.length) {
       const ratio = passed.current / rhyme.lines.length;
       onDone(ratio >= 0.8 ? 3 : ratio >= 0.5 ? 2 : 1);
@@ -574,7 +655,8 @@ function RhymePlay({
           </button>
         </div>
 
-        {sttSupported && !ok && (
+        {listenOnly && <p className="kids-feedback">🎵 Ouça e cante junto!</p>}
+        {sttSupported && !listenOnly && !ok && (
           <div className="mic-panel">
             <button className={`mic ${recording ? "on" : ""}`} onClick={record} aria-label={recording ? "Parar" : "Falar"}>
               {recording ? "■" : "🎤"}
@@ -597,7 +679,7 @@ function RhymePlay({
   );
 }
 
-function KidsTopics({ onPick, onExit }: { onPick(t: KidsTopic): void; onExit(): void }) {
+function KidsTopics({ band, onPick, onExit }: { band: AgeBand; onPick(t: KidsTopic): void; onExit(): void }) {
   return (
     <div className="page">
       <header className="page-top">
@@ -606,10 +688,10 @@ function KidsTopics({ onPick, onExit }: { onPick(t: KidsTopic): void; onExit(): 
         </button>
         <h1>Conversar com o Kiko</h1>
       </header>
-      <p className="hint">Escolha um assunto. Toque na bolinha e fale em inglês: o Kiko responde! A conversa dura 3 minutos.</p>
+      <p className="hint">Escolha um assunto. Toque na bolinha e fale em inglês: o Kiko responde! A conversa dura {band.chatSeconds / 60} minutos.</p>
       {isIOS && !usingServerVoice() && <p className="hint small">🔔 No iPhone, tire do modo silencioso para ouvir o Kiko.</p>}
       <div className="topic-grid">
-        {KIDS_TOPICS.map((t) => (
+        {topicsFor(band.id).map((t) => (
           <button key={t.id} className="topic kids-topic" onClick={() => onPick(t)}>
             <Pic emoji={t.emoji} size={56} />
             <strong>{t.title}</strong>
@@ -617,6 +699,99 @@ function KidsTopics({ onPick, onExit }: { onPick(t: KidsTopic): void; onExit(): 
           </button>
         ))}
       </div>
+    </div>
+  );
+}
+
+/** Asked to the adult on the first visit and from the parents' area. */
+function AgePicker({ value, onPick, onBack }: { value: KidsAge | null; onPick(age: KidsAge): void; onBack(): void }) {
+  return (
+    <div className="page">
+      <header className="page-top">
+        <button className="close" onClick={onBack} aria-label="Voltar">
+          ←
+        </button>
+        <h1>Qual a idade da criança?</h1>
+      </header>
+      <p className="hint">Isso ajusta as atividades e o jeito do Kiko falar. Dá para mudar depois na Área dos pais.</p>
+      <div className="kids-ages">
+        {AGES.map((a) => (
+          <button key={a.id} className={`mode-choice ${a.id === value ? "kids-choice" : ""}`} onClick={() => onPick(a.id)}>
+            <span>{a.emoji}</span>
+            <strong>{a.label}</strong>
+            <span className="hint">{a.description}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/** For the youngest (0-3): one big picture at a time, said aloud, with no answer expected. */
+function PictureBook({ cards, onSeen, onDone, onExit }: { cards: Card[]; onSeen(id: string): void; onDone(): void; onExit(): void }) {
+  const [i, setI] = useState(0);
+  const card = cards[i];
+
+  useEffect(() => {
+    if (!card) return;
+    const t = setTimeout(() => speak(card.en), 350);
+    return () => clearTimeout(t);
+  }, [card]);
+
+  if (!card) {
+    return (
+      <div className="result">
+        <div className="result-card">
+          <Pic emoji="📖" size={96} />
+          <h1>Você já viu todas as figuras de hoje!</h1>
+          <div className="result-actions">
+            <button className="btn primary" onClick={onExit}>
+              Início
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const next = () => {
+    onSeen(card.id);
+    if (i + 1 >= cards.length) onDone();
+    else setI(i + 1);
+  };
+
+  return (
+    <div className="lesson">
+      <header className="lesson-top">
+        <button className="close" onClick={onExit} aria-label="Sair">
+          ✕
+        </button>
+        <div className="bar">
+          <div style={{ width: `${Math.max((i / cards.length) * 100, 3)}%` }} />
+        </div>
+        <span className="stage-tag">
+          {i + 1}/{cards.length}
+        </span>
+      </header>
+      <main className="lesson-body kids-book">
+        <button className="kids-book-pic" onClick={() => speak(card.en)} aria-label={`Ouvir ${card.en}`}>
+          <Pic emoji={card.emoji} size={200} className="kids-pop" key={card.id} />
+        </button>
+        <p className="kids-line-en">{card.en}</p>
+        <p className="kids-line-pt">{card.pt}</p>
+        <div className="audio-buttons center">
+          <button className="audio-btn small" onClick={() => speak(card.en)} aria-label="Ouvir">
+            🔊
+          </button>
+          <button className="audio-btn small" onClick={() => speak(card.en, true)} aria-label="Ouvir devagar">
+            🐢
+          </button>
+        </div>
+        <p className="hint">Toque na figura para ouvir de novo. Repita junto com a criança!</p>
+        <button className="btn primary kids-next" onClick={next}>
+          {i + 1 >= cards.length ? "Terminar" : "Próxima figura"}
+        </button>
+      </main>
     </div>
   );
 }
@@ -689,7 +864,19 @@ function ParentGate({ title, onPass, onExit }: { title: string; onPass(): void; 
 
 const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 
-function ParentPanel({ kids, onAdultMode, onExit }: { kids: KidsProgress; onAdultMode(): void; onExit(): void }) {
+function ParentPanel({
+  kids,
+  band,
+  onAge,
+  onAdultMode,
+  onExit,
+}: {
+  kids: KidsProgress;
+  band: AgeBand;
+  onAge(): void;
+  onAdultMode(): void;
+  onExit(): void;
+}) {
   const words = Object.values(kids.cards).filter((c) => c.box > 0).length;
   const rhymes = Object.keys(kids.rhymes).length;
   const week = Array.from({ length: 7 }, (_, i) => {
@@ -707,6 +894,19 @@ function ParentPanel({ kids, onAdultMode, onExit }: { kids: KidsProgress; onAdul
         </button>
         <h1>Área dos pais</h1>
       </header>
+
+      <div className="card kids-age-card">
+        <div>
+          <div className="card-label">Faixa etária</div>
+          <strong>
+            {band.emoji} {band.label}
+          </strong>
+          <span className="hint small">{band.description}</span>
+        </div>
+        <button className="btn secondary" onClick={onAge}>
+          Alterar
+        </button>
+      </div>
 
       <div className="card">
         <div className="card-label">Últimos 7 dias</div>
@@ -756,7 +956,8 @@ function ParentPanel({ kids, onAdultMode, onExit }: { kids: KidsProgress; onAdul
         <p className="hint small">
           O Kiko usa a IA Claude com regras próprias para crianças: inglês bem simples, só temas infantis, sem pedir dados pessoais
           (nome completo, endereço, escola) e orientação para procurar um adulto se a criança disser algo preocupante. Mesmo assim,
-          recomendamos acompanhar as conversas. Cada conversa dura 3 minutos.
+          recomendamos acompanhar as conversas.{" "}
+          {band.chatSeconds ? `Nesta faixa etária, cada conversa dura ${band.chatSeconds / 60} minutos.` : "Para 0 a 3 anos a conversa fica desligada."}
         </p>
       </div>
 
