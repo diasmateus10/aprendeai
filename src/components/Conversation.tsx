@@ -3,7 +3,7 @@ import { SESSION_SECONDS, TOPICS, type Topic } from "../data/topics";
 import { ACCENTS, CORRECTIONS, LENGTHS, PERSONAS, type AiStyle, type Option } from "../data/aiStyle";
 import { VoicePicker } from "./VoicePicker";
 import type { Level } from "../lib/progress";
-import { listen, speak, sttSupported, type ListenHandle } from "../lib/speech";
+import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
 interface Turn {
   role: "user" | "assistant";
@@ -132,6 +132,17 @@ export function TopicPicker({
   );
 }
 
+
+type Phase = "idle" | "listening" | "thinking" | "speaking";
+
+/** Recognition errors that listening again won't fix, so the hands-free loop pauses. */
+const MIC_FATAL: Record<string, string> = {
+  "not-allowed": "Permita o uso do microfone no navegador.",
+  "service-not-allowed": "Permita o uso do microfone no navegador.",
+  "audio-capture": "Nenhum microfone encontrado.",
+  network: "O reconhecimento de voz precisa de internet.",
+};
+
 export function Conversation({
   topic,
   level,
@@ -148,24 +159,107 @@ export function Conversation({
   const [turns, setTurns] = useState<Turn[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
   const [left, setLeft] = useState(SESSION_SECONDS);
-  const [recording, setRecording] = useState(false);
+  const [phase, setPhaseState] = useState<Phase>("thinking");
+  // Hands-free: after the partner speaks, the mic reopens by itself, like a phone call.
+  const [live, setLiveState] = useState(sttSupported);
   const [interim, setInterim] = useState("");
   const [draft, setDraft] = useState("");
+  const [typing, setTyping] = useState(!sttSupported);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [micError, setMicError] = useState<string | null>(null);
   const ended = left <= 0 || feedback !== null;
   const abort = useRef(new AbortController());
   const mic = useRef<ListenHandle | null>(null);
   const started = useRef(Date.now());
   const bottom = useRef<HTMLDivElement>(null);
 
+  // The hands-free loop runs in callbacks that outlive the render they were created in, so it reads refs.
+  const phaseRef = useRef<Phase>("thinking");
+  const liveRef = useRef(live);
+  const turnsRef = useRef(turns);
+  const endedRef = useRef(ended);
+  turnsRef.current = turns;
+  endedRef.current = ended;
+  const setPhase = (p: Phase) => {
+    phaseRef.current = p;
+    setPhaseState(p);
+  };
+  const setLive = (on: boolean) => {
+    liveRef.current = on;
+    setLiveState(on);
+  };
+  /** Recognition sessions in a row that ended right away without hearing anything. */
+  const fastFails = useRef(0);
+  /** Bumped whenever a line is spoken or interrupted, so a stale say() doesn't reopen the mic. */
+  const sayId = useRef(0);
+
   // Last history sent, so a failed reply (e.g. Gemini's free tier is busy) can be retried as-is.
   const lastSent = useRef<Turn[]>([]);
+
+  /** Closes the mic without sending what it heard; its pending callbacks are ignored. */
+  const stopMic = () => {
+    const m = mic.current;
+    mic.current = null;
+    m?.abort();
+    setInterim("");
+  };
+
+  const startListening = () => {
+    if (!sttSupported || endedRef.current || mic.current) return;
+    setInterim("");
+    setMicError(null);
+    setPhase("listening");
+    const began = Date.now();
+    let heard = false;
+    const handle: ListenHandle = listen({
+      onInterim: (t) => mic.current === handle && setInterim(t),
+      onFinal: (alts) => {
+        if (mic.current !== handle || !alts[0]?.trim()) return;
+        heard = true;
+        fastFails.current = 0;
+        mic.current = null;
+        submit(alts[0]);
+      },
+      onError: (e) => {
+        if (mic.current !== handle || !MIC_FATAL[e]) return;
+        setLive(false);
+        setMicError(MIC_FATAL[e]);
+      },
+      onEnd: () => {
+        if (mic.current !== handle) return;
+        mic.current = null;
+        setInterim("");
+        setPhase("idle");
+        if (heard || !liveRef.current || endedRef.current) return;
+        // Silence just ends a recognition session; reopen it so the mic stays open. Give up if it keeps failing instantly.
+        fastFails.current = Date.now() - began < 1000 ? fastFails.current + 1 : 0;
+        if (fastFails.current >= 3) {
+          setLive(false);
+          return;
+        }
+        setTimeout(() => liveRef.current && phaseRef.current === "idle" && startListening(), 150);
+      },
+    });
+    mic.current = handle;
+  };
+
+  /** Speaks a line, then reopens the mic when the conversation is hands-free. */
+  const say = async (text: string, slow = false) => {
+    const id = ++sayId.current;
+    stopMic();
+    setPhase("speaking");
+    await speak(text, slow);
+    if (id !== sayId.current) return;
+    setPhase("idle");
+    if (liveRef.current) startListening();
+  };
 
   const send = async (history: Turn[]) => {
     lastSent.current = history;
     setError(null);
     setStreaming("");
+    setPhase("thinking");
     try {
       const reply = await streamChat(
         { topic: topic.id, level, mode: "chat", messages: history, style },
@@ -175,12 +269,17 @@ export function Conversation({
       setStreaming(null);
       if (reply.includes("⚠️")) {
         setError(reply.slice(reply.indexOf("⚠️")));
+        setPhase("idle");
         return;
       }
-      setTurns([...history, { role: "assistant", content: reply }]);
-      speak(splitTip(reply).said);
+      const next = [...history, { role: "assistant" as const, content: reply }];
+      turnsRef.current = next;
+      setTurns(next);
+      if (endedRef.current) setPhase("idle");
+      else say(splitTip(reply).said);
     } catch (e) {
       setStreaming(null);
+      setPhase("idle");
       if ((e as Error).name !== "AbortError") setError("Não consegui conectar com a IA. Verifique se o servidor está rodando.");
     }
   };
@@ -193,8 +292,9 @@ export function Conversation({
     send([]);
     return () => {
       ctrl.abort();
-      mic.current?.stop();
-      window.speechSynthesis?.cancel();
+      sayId.current++;
+      stopMic();
+      stopSpeaking();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -207,11 +307,13 @@ export function Conversation({
 
   useEffect(() => {
     bottom.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [turns, streaming, feedback]);
+  }, [turns, streaming, feedback, interim]);
 
   const finish = async () => {
-    mic.current?.stop();
-    window.speechSynthesis?.cancel();
+    sayId.current++;
+    stopMic();
+    stopSpeaking();
+    setPhase("idle");
     setLeft(0);
     setFeedback("");
     const seconds = Math.min(SESSION_SECONDS, Math.round((Date.now() - started.current) / 1000));
@@ -231,36 +333,48 @@ export function Conversation({
 
   const submit = (text: string) => {
     const clean = text.trim();
-    if (!clean || streaming !== null || ended) return;
+    if (!clean || endedRef.current || phaseRef.current === "thinking") return;
+    sayId.current++;
+    stopMic();
+    stopSpeaking();
     setDraft("");
-    const history = [...turns, { role: "user" as const, content: clean }];
+    const history = [...turnsRef.current, { role: "user" as const, content: clean }];
+    turnsRef.current = history;
     setTurns(history);
     send(history);
   };
 
-  const toggleMic = () => {
-    if (recording) {
-      mic.current?.stop();
+  /** Speaking → interrupt and talk; listening → pause; paused → start listening again. */
+  const tapOrb = () => {
+    if (ended || phase === "thinking") return;
+    if (phase === "listening") {
+      setLive(false);
+      stopMic();
+      setPhase("idle");
       return;
     }
-    window.speechSynthesis?.cancel();
-    setInterim("");
-    setRecording(true);
-    mic.current = listen({
-      onInterim: setInterim,
-      onFinal: (alts) => alts[0] && submit(alts[0]),
-      onError: (e) => {
-        if (e === "not-allowed" || e === "service-not-allowed") setError("Permita o uso do microfone no navegador.");
-      },
-      onEnd: () => {
-        setRecording(false);
-        setInterim("");
-      },
-    });
+    sayId.current++;
+    stopSpeaking();
+    setLive(true);
+    fastFails.current = 0;
+    setPhase("idle");
+    startListening();
+  };
+
+  /** Replays a message; the mic stays closed meanwhile so it doesn't hear the partner's voice. */
+  const replay = (text: string, slow = false) => {
+    if (phase === "thinking") speak(text, slow);
+    else say(text, slow);
   };
 
   const mm = Math.max(left, 0);
   const clock = `${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, "0")}`;
+  const orbLabel = {
+    listening: "Ouvindo… pode falar",
+    thinking: "Pensando…",
+    speaking: "Falando… toque para interromper",
+    idle: live ? "Ouvindo…" : "Pausado · toque para falar",
+  }[phase];
 
   return (
     <div className="lesson convo">
@@ -291,10 +405,10 @@ export function Conversation({
             <div key={i} className="msg ai">
               <p>{said}</p>
               <div className="msg-tools">
-                <button className="mini" onClick={() => speak(said)} aria-label="Ouvir">
+                <button className="mini" onClick={() => replay(said)} aria-label="Ouvir">
                   🔊
                 </button>
-                <button className="mini" onClick={() => speak(said, true)} aria-label="Ouvir devagar">
+                <button className="mini" onClick={() => replay(said, true)} aria-label="Ouvir devagar">
                   🐢
                 </button>
               </div>
@@ -303,7 +417,7 @@ export function Conversation({
           );
         })}
         {streaming !== null && <div className="msg ai typing">{splitTip(streaming).said || "…"}</div>}
-        {recording && <div className="msg me interim">{interim || "Ouvindo…"}</div>}
+        {phase === "listening" && interim && <div className="msg me interim">{interim}</div>}
         {error && (
           <div className="retry">
             <p className="warn">{error}</p>
@@ -344,24 +458,38 @@ export function Conversation({
       </main>
 
       {!ended && (
-        <footer className="convo-input">
+        <footer className="convo-footer">
           {sttSupported && (
-            <button className={`mic small ${recording ? "on" : ""}`} onClick={toggleMic} disabled={streaming !== null} aria-label="Falar">
-              {recording ? "■" : "🎤"}
-            </button>
+            <div className="orb-panel">
+              <button className={`orb ${phase} ${live ? "live" : ""}`} onClick={tapOrb} disabled={phase === "thinking"} aria-label={orbLabel}>
+                <span className="orb-core" />
+              </button>
+              <p className={`orb-label ${micError ? "warn" : ""}`}>{micError ?? orbLabel}</p>
+            </div>
           )}
-          <input
-            value={draft}
-            placeholder={sttSupported ? "Fale ou digite em inglês…" : "Digite em inglês…"}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && submit(draft)}
-          />
-          <button className="btn primary" disabled={!draft.trim() || streaming !== null} onClick={() => submit(draft)}>
-            Enviar
-          </button>
-          <button className="link" onClick={finish}>
-            Encerrar
-          </button>
+          {typing && (
+            <div className="convo-input">
+              <input
+                value={draft}
+                placeholder="Digite em inglês…"
+                onChange={(e) => setDraft(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && submit(draft)}
+              />
+              <button className="btn primary" disabled={!draft.trim() || streaming !== null} onClick={() => submit(draft)}>
+                Enviar
+              </button>
+            </div>
+          )}
+          <div className="convo-actions">
+            {sttSupported && (
+              <button className="link" onClick={() => setTyping(!typing)}>
+                {typing ? "Esconder teclado" : "⌨️ Digitar"}
+              </button>
+            )}
+            <button className="link" onClick={finish}>
+              Encerrar
+            </button>
+          </div>
         </footer>
       )}
     </div>

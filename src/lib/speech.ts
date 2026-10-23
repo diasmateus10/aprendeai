@@ -50,9 +50,12 @@ export function isNaturalVoice(v: SpeechSynthesisVoice): boolean {
   return voiceScore(v) >= 60;
 }
 
+/** Voices that failed to synthesize (Edge's online "Natural" voices do when offline); skipped from then on. */
+const brokenVoices = new Set<string>();
+
 function pickVoice(): SpeechSynthesisVoice | null {
   if (cachedVoice) return cachedVoice;
-  const voices = englishVoices();
+  const voices = englishVoices().filter((v) => !brokenVoices.has(v.name));
   cachedVoice = voices.find((v) => v.name === preferredVoice) ?? voices[0] ?? null;
   return cachedVoice;
 }
@@ -74,20 +77,92 @@ if (typeof window !== "undefined" && window.speechSynthesis) {
 
 export const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
-export function speak(text: string, slow = false): Promise<void> {
-  return new Promise((resolve) => {
-    if (!ttsSupported) return resolve();
-    window.speechSynthesis.cancel();
-    const u = new SpeechSynthesisUtterance(text);
-    const voice = pickVoice();
-    if (voice) u.voice = voice;
-    u.lang = voice?.lang ?? accent;
-    // Neural voices sound most natural at their normal speed; slowing them down is what "🐢" is for.
-    u.rate = slow ? 0.6 : 1;
-    u.onend = () => resolve();
-    u.onerror = () => resolve();
+// iOS only lets speech start from a tap; replies arrive after a fetch, so unlock it on the first one.
+if (ttsSupported) {
+  const events = ["click", "touchend", "keydown"] as const;
+  const unlock = () => {
+    events.forEach((e) => window.removeEventListener(e, unlock, true));
+    if (window.speechSynthesis.speaking) return;
+    const u = new SpeechSynthesisUtterance(" ");
+    u.volume = 0;
     window.speechSynthesis.speak(u);
+  };
+  events.forEach((e) => window.addEventListener(e, unlock, true));
+}
+
+/** Splits text into sentence-sized chunks: Chrome's online voices go silent mid-way through utterances longer than ~15s. */
+function chunk(text: string): string[] {
+  const out: string[] = [];
+  for (const s of text.match(/[^\n]+?(?:[.!?]+(?=\s|$)|$)/gm) ?? []) {
+    const part = s.trim();
+    if (!part) continue;
+    const last = out[out.length - 1];
+    if (last && last.length + part.length < 160) out[out.length - 1] = `${last} ${part}`;
+    else out.push(part);
+  }
+  return out;
+}
+
+// Chrome garbage-collects utterances nothing references, and then never fires their onend.
+let queue: SpeechSynthesisUtterance[] = [];
+let speakId = 0;
+
+/** Speaks the text; resolves when it finishes, fails or is interrupted by another speak()/cancel(). */
+export function speak(text: string, slow = false): Promise<void> {
+  const id = ++speakId;
+  return new Promise((resolve) => {
+    const parts = chunk(text);
+    if (!ttsSupported || parts.length === 0) return resolve();
+    const synth = window.speechSynthesis;
+    const interrupting = synth.speaking || synth.pending;
+    synth.cancel();
+
+    let settled = false;
+    const done = () => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      resolve();
+    };
+    // Safety net: some engines never fire onend, which would stall the hands-free conversation.
+    const timer = setTimeout(done, 4000 + text.length * (slow ? 150 : 90));
+
+    let attempt = 0;
+    const run = (retried: boolean) => {
+      const mine = ++attempt;
+      if (id !== speakId) return done();
+      const voice = pickVoice();
+      // Chrome can be left paused (e.g. after the tab was in the background) and then stays silent.
+      synth.resume();
+      queue = parts.map((p, i) => {
+        const u = new SpeechSynthesisUtterance(p);
+        if (voice) u.voice = voice;
+        u.lang = voice?.lang ?? accent;
+        // Neural voices sound most natural at their normal speed; slowing them down is what "🐢" is for.
+        u.rate = slow ? 0.6 : 1;
+        if (i === parts.length - 1) u.onend = () => mine === attempt && done();
+        u.onerror = (e) => {
+          if (mine !== attempt) return;
+          if (e.error === "interrupted" || e.error === "canceled" || retried || !voice) return done();
+          // The voice itself failed: drop it and retry with the next best one.
+          brokenVoices.add(voice.name);
+          cachedVoice = null;
+          synth.cancel();
+          run(true);
+        };
+        return u;
+      });
+      queue.forEach((u) => synth.speak(u));
+    };
+    // Chrome sometimes drops a speak() issued right after cancel(), so give it a moment when interrupting.
+    if (interrupting) setTimeout(() => run(false), 80);
+    else run(false);
   });
+}
+
+export function stopSpeaking() {
+  speakId++;
+  if (ttsSupported) window.speechSynthesis.cancel();
 }
 
 type RecognitionCtor = new () => SpeechRecognitionLike;
@@ -114,7 +189,10 @@ function getRecognitionCtor(): RecognitionCtor | null {
 export const sttSupported = getRecognitionCtor() !== null;
 
 export interface ListenHandle {
+  /** Stops listening and still delivers what was heard so far. */
   stop(): void;
+  /** Stops listening and discards what was heard. */
+  abort(): void;
 }
 
 export interface ListenCallbacks {
@@ -130,7 +208,7 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   if (!Ctor) {
     cb.onError?.("not-supported");
     cb.onEnd?.();
-    return { stop() {} };
+    return { stop() {}, abort() {} };
   }
   const rec = new Ctor();
   rec.lang = accent;
@@ -155,5 +233,5 @@ export function listen(cb: ListenCallbacks): ListenHandle {
     cb.onEnd?.();
   };
   rec.start();
-  return { stop: () => rec.stop() };
+  return { stop: () => rec.stop(), abort: () => rec.abort() };
 }
