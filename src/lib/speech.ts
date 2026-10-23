@@ -34,15 +34,21 @@ function voiceScore(v: SpeechSynthesisVoice): number {
   if (n.includes("google")) s += 60;
   if (n.includes("online")) s += 30;
   if (/\b(samantha|ava|allison|evan|nicky|zoe|daniel|kate|serena|arthur|martha|jamie|aaron)\b/.test(n)) s += 25;
-  if (/\b(david|zira|mark|hazel|george|espeak|fred|albert|ralph|kathy|junior|zarvox|trinoids|whisper|bells|boing|bubbles|cellos|organ|jester|superstar|wobble|bahh|princess)\b/.test(n)) s -= 100;
+  // Old robotic voices: Windows SAPI, eSpeak, and Apple's Eloquence and classic voices.
+  if (/\b(david|zira|mark|hazel|george|espeak|fred|albert|ralph|kathy|junior|eddy|flo|reed|rocko|sandy|shelley|grandma|grandpa)\b/.test(n)) s -= 100;
   if (norm(v.lang) === accent.toLowerCase()) s += 20;
   return s;
 }
 
+/** Apple's novelty voices sing, whisper or bubble ("Good News", "Cellos"...): never usable for teaching. */
+const NOVELTY = /\b(bad news|good news|bahh|bells|boing|bubbles|cellos|deranged|hysterical|jester|organ|princess|superstar|trinoids|whisper|wobble|zarvox)\b/i;
+
 /** English voices this device offers, most natural first (current accent ranked higher). */
 export function englishVoices(): SpeechSynthesisVoice[] {
   const voices = typeof window !== "undefined" ? window.speechSynthesis?.getVoices() ?? [] : [];
-  return voices.filter((v) => norm(v.lang).startsWith("en")).sort((a, b) => voiceScore(b) - voiceScore(a));
+  return voices
+    .filter((v) => norm(v.lang).startsWith("en") && !NOVELTY.test(v.name))
+    .sort((a, b) => voiceScore(b) - voiceScore(a));
 }
 
 /** True for voices that typically sound natural, to label them in the picker. */
@@ -153,6 +159,9 @@ export function speak(text: string, slow = false): Promise<void> {
         if (mine !== attempt) return;
         clearTimeout(startTimer);
         if (!voice || attempt >= MAX_VOICE_TRIES) return done();
+        // Silence from a device voice means speech was blocked (iOS before a tap), not a broken voice:
+        // dropping it would walk down to the worst voices on the list.
+        if (voice.localService && silent) return done();
         brokenVoices.add(voice.name);
         if (!voice.localService) preferLocal = true;
         cachedVoice = null;
@@ -164,7 +173,11 @@ export function speak(text: string, slow = false): Promise<void> {
       timer = setTimeout(done, 4000 + text.length * (slow ? 150 : 90));
       // Online voices (Google's in Chrome, Microsoft's "Natural" ones in Edge) sometimes stay silent without an error.
       clearTimeout(startTimer);
-      startTimer = setTimeout(fail, START_TIMEOUT_MS);
+      let silent = false;
+      startTimer = setTimeout(() => {
+        silent = true;
+        fail();
+      }, START_TIMEOUT_MS);
       // Chrome can be left paused (e.g. after the tab was in the background) and then stays silent.
       synth.resume();
       queue = parts.map((p, i) => {
@@ -177,8 +190,9 @@ export function speak(text: string, slow = false): Promise<void> {
         if (i === parts.length - 1) u.onend = () => mine === attempt && done();
         u.onerror = (e) => {
           if (mine !== attempt) return;
-          if (e.error === "interrupted" || e.error === "canceled") return done();
-          // The voice itself failed (or speech isn't allowed yet): try the next one.
+          // Interrupted on purpose, or not allowed yet (no tap): nothing is wrong with the voice.
+          if (e.error === "interrupted" || e.error === "canceled" || e.error === "not-allowed") return done();
+          // The voice itself failed: try the next one.
           fail();
         };
         return u;
