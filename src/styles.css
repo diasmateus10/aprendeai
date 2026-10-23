@@ -2105,3 +2105,14 @@ button:disabled {
 .kids-tile.full {
   grid-column: 1 / -1;
 }
+
+.reminder-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.reminder-card p {
+  margin: 4px 0 0;
+}

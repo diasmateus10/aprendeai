@@ -4,6 +4,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { clientIp } from "./chat.js";
+import { allow } from "./db.js";
 
 /** Adults hear Ava (US) or Sonia (UK); the Kids mode hears a child's voice, Ana (US) or Maisie (UK). */
 const VOICES: Record<string, string> = {
@@ -17,18 +18,6 @@ const MAX_CHARS = 600;
 // Per-person daily limit so a shared public link doesn't burn through the free 500k characters a month.
 // Cached replies (the same word or line again) are served by the CDN and don't reach this counter.
 const REQUESTS_PER_DAY = Number(process.env.TTS_REQUESTS_PER_DAY ?? 600);
-const usage = new Map<string, { day: string; requests: number }>();
-
-function overLimit(ip: string): boolean {
-  const day = new Date().toISOString().slice(0, 10);
-  let u = usage.get(ip);
-  if (!u || u.day !== day) {
-    if (usage.size > 10_000) usage.clear();
-    u = { day, requests: 0 };
-    usage.set(ip, u);
-  }
-  return ++u.requests > REQUESTS_PER_DAY;
-}
 
 const XML: Record<string, string> = { "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" };
 const escapeXml = (text: string) => text.replace(/[<>&'"]/g, (c) => XML[c]);
@@ -43,7 +32,7 @@ export async function handleTts(url: URL, ip: string, key: string, region: strin
     res.end();
     return;
   }
-  if (overLimit(ip)) {
+  if (!(await allow(ip, "tts", REQUESTS_PER_DAY))) {
     res.statusCode = 429;
     res.end();
     return;

@@ -37,6 +37,7 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **Gamificação:** XP, sequência de dias, meta diária com anel de progresso, semana em bolinhas, vidas e estrelas por lição.
 - **Voz natural:** o app escolhe a voz mais natural disponível no aparelho e permite trocar, com prévia.
 - **Mobile first:** layout pensado para celular e publicado com HTTPS, o que permite usar o microfone.
+- **Lembrete diário da ofensiva:** quem ativa recebe uma notificação às 19h nos dias em que ainda não estudou ("🔥 Sua ofensiva de 5 dias está em risco!"). No iPhone, o app precisa estar na Tela de Início. Os dados ficam no Supabase (só o endereço da notificação e o último dia de estudo), e uma tarefa diária da Vercel envia os avisos.
 
 ### Modo Kids
 
@@ -66,6 +67,8 @@ Escolhido na primeira tela ("Quem vai aprender?") ou pelo card **Modo Kids**. Te
 | Backend | Função serverless na Vercel (`api/chat.ts`) |
 | Hospedagem | Vercel |
 | Dados do aluno | `localStorage` (progresso fica no próprio aparelho) |
+| Banco de dados | Supabase (lembretes e limites de uso por dia) |
+| Notificações | Web Push (service worker + `web-push`) e Vercel Cron |
 
 ### Detalhes técnicos
 

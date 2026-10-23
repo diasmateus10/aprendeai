@@ -6,6 +6,8 @@ import { Placement } from "./components/Placement";
 import { deckFor, Flashcards, sessionCards, type Card } from "./components/Flashcards";
 import { Conversation, TopicPicker } from "./components/Conversation";
 import { KidsApp } from "./components/Kids";
+import { ReminderCard } from "./components/Reminder";
+import { reportStudy } from "./lib/push";
 import type { Topic } from "./data/topics";
 import {
   addXp,
@@ -59,6 +61,11 @@ export default function App() {
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [screen.name, progress.mode]);
+
+  // Tells the reminder server about each study day, so nobody is reminded after studying.
+  useEffect(() => {
+    if (progress.mode === "adult" && progress.lastDay) reportStudy(progress.lastDay, progress.streak);
+  }, [progress.mode, progress.lastDay, progress.streak]);
 
   if (progress.mode === "kids") {
     return (
@@ -505,6 +512,8 @@ function Dashboard({
           </div>
         )}
       </div>
+
+      <ReminderCard lastDay={progress.lastDay} streak={progress.streak} />
 
       {next && nextUnit && (
         <div className="card next-card" style={{ borderLeftColor: nextUnit.color }}>

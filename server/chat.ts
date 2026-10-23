@@ -7,6 +7,7 @@ import type { Plugin } from "vite";
 import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 import { KIDS_TOPICS } from "../src/data/kids.js";
+import { allow } from "./db.js";
 
 // Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
 // ANTHROPIC_MODEL overrides it, e.g. claude-opus-5-5 for richer conversation at a much higher cost.
@@ -155,26 +156,15 @@ export function clientIp(req: IncomingMessage): string {
   return first || req.socket.remoteAddress || "unknown";
 }
 
-// Daily per-person limits so a shared public link doesn't burn through the API quota.
-// Kept in memory: good enough for one server, best effort on serverless (each instance counts on its own).
+// Daily per-person limits so a shared public link doesn't burn through the API credits (counted in Supabase).
 const SESSIONS_PER_DAY = Number(process.env.CHAT_SESSIONS_PER_DAY ?? 5);
 const REQUESTS_PER_DAY = Number(process.env.CHAT_REQUESTS_PER_DAY ?? 100);
-const usage = new Map<string, { day: string; sessions: number; requests: number }>();
 
-function overLimit(ip: string, newSession: boolean): string | null {
-  const day = new Date().toISOString().slice(0, 10);
-  let u = usage.get(ip);
-  if (!u || u.day !== day) {
-    if (usage.size > 10_000) usage.clear();
-    u = { day, sessions: 0, requests: 0 };
-    usage.set(ip, u);
-  }
-  if (newSession && u.sessions >= SESSIONS_PER_DAY) {
+async function overLimit(ip: string, newSession: boolean): Promise<string | null> {
+  if (newSession && !(await allow(ip, "chat_session", SESSIONS_PER_DAY))) {
     return `Você já fez ${SESSIONS_PER_DAY} conversas hoje. Volte amanhã para conversar de novo!`;
   }
-  if (u.requests >= REQUESTS_PER_DAY) return "Limite diário de mensagens atingido. Volte amanhã!";
-  if (newSession) u.sessions++;
-  u.requests++;
+  if (!(await allow(ip, "chat_request", REQUESTS_PER_DAY))) return "Limite diário de mensagens atingido. Volte amanhã!";
   return null;
 }
 
@@ -193,7 +183,7 @@ export async function handleChat(client: Anthropic, rawBody: string, ip: string,
     return;
   }
 
-  const limited = overLimit(ip, body.mode === "chat" && body.messages.length === 0);
+  const limited = await overLimit(ip, body.mode === "chat" && body.messages.length === 0);
   if (limited) {
     res.statusCode = 429;
     res.end(`⚠️ ${limited}`);

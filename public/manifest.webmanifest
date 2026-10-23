@@ -1,0 +1,16 @@
+{
+  "name": "AprendeAI — fale inglês de verdade",
+  "short_name": "AprendeAI",
+  "description": "Inglês para brasileiros, com foco em ouvir e falar.",
+  "lang": "pt-BR",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#242729",
+  "theme_color": "#242729",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
