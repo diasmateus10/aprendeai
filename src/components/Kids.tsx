@@ -13,7 +13,7 @@ import {
 import { imageFor, type VocabItem } from "../data/vocab";
 import { DEFAULT_STYLE } from "../data/aiStyle";
 import { addStars, dayKey, type KidsProgress, type Progress } from "../lib/progress";
-import { isIOS, listen, speak, sttSupported, type ListenHandle } from "../lib/speech";
+import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 import { scoreSpeech, type Score } from "../lib/score";
 import { Flashcards, sessionCards, type Card } from "./Flashcards";
 import { Conversation } from "./Conversation";
@@ -292,7 +292,7 @@ function KidsHome({
         </span>
       </div>
 
-      {isIOS && <div className="banner">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir o Kiko.</div>}
+      {isIOS && !usingServerVoice() && <div className="banner">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir o Kiko.</div>}
       {!sttSupported && <div className="banner">Para falar com o Kiko, abra no Chrome ou no Edge. Os jogos de ouvir funcionam em qualquer navegador.</div>}
 
       <main className="kids-tiles">
@@ -495,7 +495,7 @@ function RhymePlay({
       mic.current?.stop();
       return;
     }
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setMicError(null);
     setInterim("");
     setRecording(true);
@@ -607,7 +607,7 @@ function KidsTopics({ onPick, onExit }: { onPick(t: KidsTopic): void; onExit(): 
         <h1>Conversar com o Kiko</h1>
       </header>
       <p className="hint">Escolha um assunto. Toque na bolinha e fale em inglês: o Kiko responde! A conversa dura 3 minutos.</p>
-      {isIOS && <p className="hint small">🔔 No iPhone, tire do modo silencioso para ouvir o Kiko.</p>}
+      {isIOS && !usingServerVoice() && <p className="hint small">🔔 No iPhone, tire do modo silencioso para ouvir o Kiko.</p>}
       <div className="topic-grid">
         {KIDS_TOPICS.map((t) => (
           <button key={t.id} className="topic kids-topic" onClick={() => onPick(t)}>

@@ -19,7 +19,7 @@ import {
   type Level,
   type Progress,
 } from "./lib/progress";
-import { setAccent, setVoiceName, speak, sttSupported } from "./lib/speech";
+import { setAccent, setVoiceKind, setVoiceName, speak, sttSupported } from "./lib/speech";
 
 type Screen =
   | { name: "welcome" }
@@ -45,6 +45,7 @@ export default function App() {
   // The chosen accent drives every English voice in the app, not just the AI chat.
   setAccent(progress.aiStyle.accent);
   setVoiceName(progress.voiceName);
+  setVoiceKind(progress.mode === "kids" ? "kids" : "adult");
 
   const level = levelInfo(progress.level);
   const startLesson = lessons.findIndex((l) => l.unitId === units[level.startUnit].id);

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Exchange, Exercise, Phrase } from "../data/course";
-import { listen, speak, sttSupported, type ListenHandle } from "../lib/speech";
+import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 import { scoreSpeech, scoreTyped, SPEAK_PASS, TYPE_PASS, type Score } from "../lib/score";
 
 export interface Outcome {
@@ -195,7 +195,7 @@ function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeaki
     setScore(null);
     setRecording(true);
     started.current = Date.now();
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     handle.current = listen({
       onInterim: setInterim,
       onFinal: (alts) => {

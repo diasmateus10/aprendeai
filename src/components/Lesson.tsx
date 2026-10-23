@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { buildLesson, type Lesson as LessonT } from "../data/course";
 import { ExerciseView, type Outcome } from "./Exercises";
-import { speak } from "../lib/speech";
+import { speak, stopSpeaking } from "../lib/speech";
 
 const HEARTS = 5;
 
@@ -35,7 +35,7 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
   };
 
   const next = () => {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     if (hearts <= 0) {
       onDone({ correct, total: initial.length, speakingSeconds, failed: true });
       return;

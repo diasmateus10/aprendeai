@@ -2,6 +2,7 @@ import { useState } from "react";
 import { buildStage, levelFromStages, STAGE_COUNT, STAGE_PASS } from "../data/levels";
 import type { Exercise } from "../data/course";
 import type { Level } from "../lib/progress";
+import { stopSpeaking } from "../lib/speech";
 import { ExerciseView, type Outcome } from "./Exercises";
 
 /**
@@ -23,7 +24,7 @@ export function Placement({ onExit, onDone }: { onExit(): void; onDone(level: Le
   };
 
   const advance = (correct: boolean) => {
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     const got = stageCorrect + (correct ? 1 : 0);
     setLocked(false);
     if (q + 1 < questions.length) {

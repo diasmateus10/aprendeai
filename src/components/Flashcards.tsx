@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { categoriesFor, imageFor } from "../data/vocab";
 import type { CardState, Level } from "../lib/progress";
-import { listen, speak, sttSupported, type ListenHandle } from "../lib/speech";
+import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
 /** A picture card: the learner sees the image and says the English word. */
 export interface Card {
@@ -215,7 +215,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
       mic.current?.stop();
       return;
     }
-    window.speechSynthesis?.cancel();
+    stopSpeaking();
     setMicError(null);
     setInterim("");
     setRecording(true);

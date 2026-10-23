@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { englishVoices, isNaturalVoice, onVoicesChanged, speak, ttsSupported } from "../lib/speech";
+import { englishVoices, isNaturalVoice, onVoicesChanged, speak, ttsSupported, usingServerVoice } from "../lib/speech";
 
 const SAMPLE = "Hi! This is how I sound. Let's practice English together.";
 const MAX_SHOWN = 10;
@@ -9,6 +9,20 @@ export function VoicePicker({ value, onChange }: { value: string | null; onChang
   const [voices, setVoices] = useState(englishVoices);
 
   useEffect(() => onVoicesChanged(() => setVoices(englishVoices())), []);
+
+  if (usingServerVoice()) {
+    return (
+      <div className="style-row">
+        <div className="card-label">Voz</div>
+        <p className="hint small">
+          🌟 Voz natural ativa (a mesma em qualquer aparelho). O sotaque acima escolhe entre a voz americana e a britânica.{" "}
+          <button className="link" onClick={() => speak(SAMPLE)}>
+            Ouvir
+          </button>
+        </p>
+      </div>
+    );
+  }
 
   if (!ttsSupported) return null;
 

@@ -3,7 +3,7 @@ import { SESSION_SECONDS, TOPICS, type Topic } from "../data/topics";
 import { ACCENTS, CORRECTIONS, LENGTHS, PERSONAS, type AiStyle, type Option } from "../data/aiStyle";
 import { VoicePicker } from "./VoicePicker";
 import type { Level } from "../lib/progress";
-import { isIOS, listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
+import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
 interface Turn {
   role: "user" | "assistant";
@@ -96,7 +96,7 @@ export function TopicPicker({
         <h1>Conversa com IA</h1>
       </header>
       <p className="hint">Escolha como a IA fala com você e um tema. A conversa dura até 5 minutos, com voz.</p>
-      {isIOS && <p className="hint small">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir a IA.</p>}
+      {isIOS && !usingServerVoice() && <p className="hint small">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir a IA.</p>}
 
       <details className="card style-card">
         <summary>
