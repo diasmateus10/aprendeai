@@ -80,14 +80,21 @@ if (typeof window !== "undefined" && window.speechSynthesis) {
 
 export const ttsSupported = typeof window !== "undefined" && "speechSynthesis" in window;
 
-// iOS only lets speech start from a tap; replies arrive after a fetch, so unlock it on the first one.
+/** iPhones and iPads (iPadOS reports itself as a Mac with touch). */
+export const isIOS =
+  typeof navigator !== "undefined" &&
+  (/iPhone|iPad|iPod/.test(navigator.userAgent) || (navigator.userAgent.includes("Mac") && navigator.maxTouchPoints > 1));
+
+// iOS only lets speech start from a tap; replies arrive after a fetch, so unlock it from the taps before.
+// An empty utterance is used because iOS ignores `volume`, and it may drop a whitespace-only one without
+// unlocking anything; the listeners stay until an unlock utterance has actually run.
 if (ttsSupported) {
   const events = ["click", "touchend", "keydown"] as const;
+  const done = () => events.forEach((e) => window.removeEventListener(e, unlock, true));
   const unlock = () => {
-    events.forEach((e) => window.removeEventListener(e, unlock, true));
-    if (window.speechSynthesis.speaking) return;
-    const u = new SpeechSynthesisUtterance(" ");
-    u.volume = 0;
+    if (window.speechSynthesis.speaking) return done();
+    const u = new SpeechSynthesisUtterance("");
+    u.onend = done;
     window.speechSynthesis.speak(u);
   };
   events.forEach((e) => window.addEventListener(e, unlock, true));
