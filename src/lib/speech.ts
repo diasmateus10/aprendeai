@@ -52,10 +52,13 @@ export function isNaturalVoice(v: SpeechSynthesisVoice): boolean {
 
 /** Voices that failed to synthesize (Edge's online "Natural" voices do when offline); skipped from then on. */
 const brokenVoices = new Set<string>();
+/** Set once an online voice fails: the device's own voices are less natural but more reliable. */
+let preferLocal = false;
 
 function pickVoice(): SpeechSynthesisVoice | null {
   if (cachedVoice) return cachedVoice;
-  const voices = englishVoices().filter((v) => !brokenVoices.has(v.name));
+  let voices = englishVoices().filter((v) => !brokenVoices.has(v.name));
+  if (preferLocal && voices.some((v) => v.localService)) voices = voices.filter((v) => v.localService);
   cachedVoice = voices.find((v) => v.name === preferredVoice) ?? voices[0] ?? null;
   return cachedVoice;
 }
@@ -107,6 +110,11 @@ function chunk(text: string): string[] {
 let queue: SpeechSynthesisUtterance[] = [];
 let speakId = 0;
 
+/** Voices tried per line before giving up: online voices can fail without any error event. */
+const MAX_VOICE_TRIES = 3;
+/** A voice that hasn't started speaking by then is treated as broken. */
+const START_TIMEOUT_MS = 3000;
+
 /** Speaks the text; resolves when it finishes, fails or is interrupted by another speak()/cancel(). */
 export function speak(text: string, slow = false): Promise<void> {
   const id = ++speakId;
@@ -118,20 +126,38 @@ export function speak(text: string, slow = false): Promise<void> {
     synth.cancel();
 
     let settled = false;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
     const done = () => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
+      clearTimeout(startTimer);
       resolve();
     };
-    // Safety net: some engines never fire onend, which would stall the hands-free conversation.
-    const timer = setTimeout(done, 4000 + text.length * (slow ? 150 : 90));
 
     let attempt = 0;
-    const run = (retried: boolean) => {
+    const run = () => {
       const mine = ++attempt;
       if (id !== speakId) return done();
       const voice = pickVoice();
+      // Drops the current voice and tries the next best one, up to MAX_VOICE_TRIES voices.
+      const fail = () => {
+        if (mine !== attempt) return;
+        clearTimeout(startTimer);
+        if (!voice || attempt >= MAX_VOICE_TRIES) return done();
+        brokenVoices.add(voice.name);
+        if (!voice.localService) preferLocal = true;
+        cachedVoice = null;
+        synth.cancel();
+        run();
+      };
+      // Safety net, restarted per voice: some engines never fire onend, which would stall the hands-free conversation.
+      clearTimeout(timer);
+      timer = setTimeout(done, 4000 + text.length * (slow ? 150 : 90));
+      // Online voices (Google's in Chrome, Microsoft's "Natural" ones in Edge) sometimes stay silent without an error.
+      clearTimeout(startTimer);
+      startTimer = setTimeout(fail, START_TIMEOUT_MS);
       // Chrome can be left paused (e.g. after the tab was in the background) and then stays silent.
       synth.resume();
       queue = parts.map((p, i) => {
@@ -140,23 +166,21 @@ export function speak(text: string, slow = false): Promise<void> {
         u.lang = voice?.lang ?? accent;
         // Neural voices sound most natural at their normal speed; slowing them down is what "🐢" is for.
         u.rate = slow ? 0.6 : 1;
+        if (i === 0) u.onstart = () => mine === attempt && clearTimeout(startTimer);
         if (i === parts.length - 1) u.onend = () => mine === attempt && done();
         u.onerror = (e) => {
           if (mine !== attempt) return;
-          if (e.error === "interrupted" || e.error === "canceled" || retried || !voice) return done();
-          // The voice itself failed: drop it and retry with the next best one.
-          brokenVoices.add(voice.name);
-          cachedVoice = null;
-          synth.cancel();
-          run(true);
+          if (e.error === "interrupted" || e.error === "canceled") return done();
+          // The voice itself failed (or speech isn't allowed yet): try the next one.
+          fail();
         };
         return u;
       });
       queue.forEach((u) => synth.speak(u));
     };
     // Chrome sometimes drops a speak() issued right after cancel(), so give it a moment when interrupting.
-    if (interrupting) setTimeout(() => run(false), 80);
-    else run(false);
+    if (interrupting) setTimeout(run, 80);
+    else run();
   });
 }
 

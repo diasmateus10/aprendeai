@@ -1699,6 +1699,12 @@ button:disabled {
   box-shadow: 0 3px 0 var(--border);
 }
 
+.kids-leave {
+  margin-right: auto;
+  color: var(--muted);
+  font-weight: 600;
+}
+
 .kids-progress {
   position: relative;
   height: 30px;

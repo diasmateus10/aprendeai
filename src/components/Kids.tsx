@@ -27,7 +27,8 @@ type Screen =
   | { name: "topics" }
   | { name: "chat"; topic: KidsTopic }
   | { name: "stickers" }
-  | { name: "gate" }
+  /** Parent check before the parents' area, or before leaving the Kids mode. */
+  | { name: "gate"; then: "parents" | "adult" }
   | { name: "parents" }
   | { name: "done"; title: string; stars: number; again?: Screen };
 
@@ -177,7 +178,13 @@ export function KidsApp({
       page = <StickerBook stars={kids.stars} onExit={home} />;
       break;
     case "gate":
-      page = <ParentGate onPass={() => setScreen({ name: "parents" })} onExit={home} />;
+      page = (
+        <ParentGate
+          title={screen.then === "adult" ? "Sair do Modo Kids" : "Área dos pais"}
+          onPass={screen.then === "adult" ? onAdultMode : () => setScreen({ name: "parents" })}
+          onExit={home}
+        />
+      );
       break;
     case "parents":
       page = <ParentPanel kids={kids} onAdultMode={onAdultMode} onExit={home} />;
@@ -222,7 +229,8 @@ export function KidsApp({
           onRhymes={() => setScreen({ name: "rhymes" })}
           onChat={() => setScreen({ name: "topics" })}
           onStickers={() => setScreen({ name: "stickers" })}
-          onParents={() => setScreen({ name: "gate" })}
+          onParents={() => setScreen({ name: "gate", then: "parents" })}
+          onLeave={() => setScreen({ name: "gate", then: "adult" })}
         />
       );
   }
@@ -237,6 +245,7 @@ function KidsHome({
   onChat,
   onStickers,
   onParents,
+  onLeave,
 }: {
   kids: KidsProgress;
   onFlashcards(): void;
@@ -245,6 +254,7 @@ function KidsHome({
   onChat(): void;
   onStickers(): void;
   onParents(): void;
+  onLeave(): void;
 }) {
   const stickers = Math.min(Math.floor(kids.stars / STARS_PER_STICKER), STICKERS.length);
   const toNext = STARS_PER_STICKER - (kids.stars % STARS_PER_STICKER);
@@ -265,6 +275,9 @@ function KidsHome({
           </span>
         </button>
         <div className="kids-counters">
+          <button className="kids-chip kids-leave" onClick={onLeave}>
+            ← Sair do Modo Kids
+          </button>
           <span className="kids-chip">⭐ {kids.stars}</span>
           <button className="kids-chip" onClick={onStickers}>
             🎁 {stickers}/{STICKERS.length}
@@ -631,7 +644,7 @@ function StickerBook({ stars, onExit }: { stars: number; onExit(): void }) {
 }
 
 /** Keeps children out of the parents' area: a multiplication a 6-year-old usually can't do yet. */
-function ParentGate({ onPass, onExit }: { onPass(): void; onExit(): void }) {
+function ParentGate({ title, onPass, onExit }: { title: string; onPass(): void; onExit(): void }) {
   const [[a, b]] = useState(() => [3 + Math.floor(Math.random() * 7), 3 + Math.floor(Math.random() * 7)]);
   const [value, setValue] = useState("");
   const [wrong, setWrong] = useState(false);
@@ -645,8 +658,8 @@ function ParentGate({ onPass, onExit }: { onPass(): void; onExit(): void }) {
   return (
     <div className="result">
       <div className="result-card kids-gate">
-        <h1>Área dos pais</h1>
-        <p className="hint">Para entrar, responda:</p>
+        <h1>{title}</h1>
+        <p className="hint">Pergunta para um adulto responder:</p>
         <p className="kids-gate-q">
           {a} × {b} = ?
         </p>
