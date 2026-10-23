@@ -33,8 +33,8 @@ type Screen =
   | { name: "topics" }
   | { name: "chat"; topic: KidsTopic }
   | { name: "stickers" }
-  /** Parent check before the parents' area, or before leaving the Kids mode. */
-  | { name: "gate"; then: "parents" | "adult" }
+  /** Parent check before the parents' area. */
+  | { name: "gate" }
   | { name: "parents" }
   | { name: "book"; cards: Card[] }
   | { name: "age" }
@@ -232,8 +232,8 @@ export function KidsApp({
     case "gate":
       page = (
         <ParentGate
-          title={screen.then === "adult" ? "Sair do Modo Kids" : "Área dos pais"}
-          onPass={screen.then === "adult" ? onAdultMode : () => setScreen({ name: "parents" })}
+          title="Área dos pais"
+          onPass={() => setScreen({ name: "parents" })}
           onExit={home}
         />
       );
@@ -288,8 +288,9 @@ export function KidsApp({
           onRhymes={() => setScreen({ name: "rhymes" })}
           onChat={() => setScreen({ name: "topics" })}
           onStickers={() => setScreen({ name: "stickers" })}
-          onParents={() => setScreen({ name: "gate", then: "parents" })}
-          onLeave={() => setScreen({ name: "gate", then: "adult" })}
+          onParents={() => setScreen({ name: "gate" })}
+          // Going back to the adult app is a plain tap; only the parents' area asks for the sum.
+          onLeave={onAdultMode}
         />
       );
   }
