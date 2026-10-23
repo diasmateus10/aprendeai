@@ -5,6 +5,7 @@ import { Lesson, type LessonResult } from "./components/Lesson";
 import { Placement } from "./components/Placement";
 import { deckFor, Flashcards, sessionCards, type Card } from "./components/Flashcards";
 import { Conversation, TopicPicker } from "./components/Conversation";
+import { KidsApp } from "./components/Kids";
 import type { Topic } from "./data/topics";
 import {
   addXp,
@@ -56,7 +57,50 @@ export default function App() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [screen.name]);
+  }, [screen.name, progress.mode]);
+
+  if (progress.mode === "kids") {
+    return (
+      <KidsApp
+        progress={progress}
+        onProgress={(change) =>
+          setProgress((p) => {
+            const next = change(p);
+            saveProgress(next);
+            return next;
+          })
+        }
+        onAdultMode={() => {
+          update({ ...progress, mode: "adult" });
+          setScreen(progress.level ? { name: "path" } : { name: "welcome" });
+        }}
+      />
+    );
+  }
+
+  if (screen.name === "welcome" && progress.mode === null) {
+    return (
+      <div className="result">
+        <div className="result-card">
+          <div className="mascot big">🦜</div>
+          <h1>Bem-vindo ao AprendeAI</h1>
+          <p className="hint">Inglês com foco em ouvir e falar. Quem vai aprender?</p>
+          <div className="mode-choices">
+            <button className="mode-choice" onClick={() => update({ ...progress, mode: "adult" })}>
+              <span>🧑</span>
+              <strong>Eu</strong>
+              <span className="hint">Curso para adultos, com nivelamento</span>
+            </button>
+            <button className="mode-choice kids-choice" onClick={() => update({ ...progress, mode: "kids" })}>
+              <span>🧒</span>
+              <strong>Uma criança</strong>
+              <span className="hint">Modo Kids, de 6 a 10 anos</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (screen.name === "welcome") {
     return (
@@ -315,6 +359,7 @@ export default function App() {
         onChat={() => setScreen({ name: "topics" })}
         onGuide={(u) => setScreen({ name: "guide", unit: u })}
         onPlacement={() => setScreen({ name: "placement" })}
+        onKids={() => update({ ...progress, mode: "kids" })}
       />
 
       <h2 className="section-title path-title">Seu curso</h2>
@@ -383,6 +428,7 @@ function Dashboard({
   onChat,
   onGuide,
   onPlacement,
+  onKids,
 }: {
   progress: Progress;
   next: LessonT | null;
@@ -394,6 +440,7 @@ function Dashboard({
   onChat(): void;
   onGuide(u: Unit): void;
   onPlacement(): void;
+  onKids(): void;
 }) {
   const [editingGoal, setEditingGoal] = useState(false);
   const today = todayXp(progress);
@@ -503,6 +550,11 @@ function Dashboard({
           <span className="act-icon">🎯</span>
           <strong>Teste de nível</strong>
           <span>Refazer nivelamento</span>
+        </button>
+        <button className="activity" onClick={onKids}>
+          <span className="act-icon">🧒</span>
+          <strong>Modo Kids</strong>
+          <span>Para crianças de 6 a 10 anos</span>
         </button>
       </div>
     </section>

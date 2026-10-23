@@ -12,6 +12,8 @@ export interface Card {
   pt: string;
   category: string;
   verb: boolean;
+  /** Overrides the default "O que é isso?" (the Kids mode asks "Que cor é essa?", etc.). */
+  question?: string;
 }
 
 /** The card's 3D illustration; falls back to the plain emoji if the image fails to load. */
@@ -68,7 +70,7 @@ function words(text: string): string[] {
   return text
     .toLowerCase()
     .replace(/[’`]/g, "'")
-    .replace(/[^a-z' -]+/g, " ")
+    .replace(/[^a-z0-9' -]+/g, " ")
     .split(/[\s-]+/)
     .filter(Boolean);
 }
@@ -243,7 +245,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
         <CardPicture key={card.id} emoji={card.emoji} />
         {phase === "ask" ? (
           <>
-            <p className="picture-question">{card.verb ? "Que ação é essa?" : "O que é isso?"} Fale em inglês.</p>
+            <p className="picture-question">{card.question ?? (card.verb ? "Que ação é essa?" : "O que é isso?")} Fale em inglês.</p>
             {hint && (
               <p className="picture-hint">
                 <span className="letters">{letterHint(card.en)}</span>

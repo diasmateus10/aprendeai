@@ -27,7 +27,7 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
   - dizer em inglês a partir do português
   - responder a uma pergunta falando
 - **Correção de pronúncia:** o reconhecimento de voz compara palavra por palavra e marca em vermelho o que precisa de atenção.
-- **Flashcards com imagens:** a pessoa vê a imagem e **fala** o nome em inglês. São 112 palavras (objetos, ações, sentimentos…) em 11 categorias, liberadas conforme o nível, com revisão espaçada. Formas naturais contam como certas (*"it's a dog"*, *"running"*).
+- **Flashcards com ilustrações 3D** (Fluent Emoji da Microsoft, licença MIT): a pessoa vê a imagem e **fala** o nome em inglês. São 112 palavras (objetos, ações, sentimentos…) em 11 categorias, liberadas conforme o nível, com revisão espaçada. Formas naturais contam como certas (*"it's a dog"*, *"running"*).
 - **Conversa com IA por voz:** 9 temas (café, aeroporto, entrevista de emprego, "fale sobre qualquer coisa"…) com até 5 minutos. A IA responde em voz alta, corrige em português e dá um feedback no final.
 - **IA personalizável:**
   - **Personalidade:** amigável, séria, direta, sem filtro, engraçada, professor paciente ou desafiadora
@@ -37,6 +37,17 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **Gamificação:** XP, sequência de dias, meta diária com anel de progresso, semana em bolinhas, vidas e estrelas por lição.
 - **Voz natural:** o app escolhe a voz mais natural disponível no aparelho e permite trocar, com prévia.
 - **Mobile first:** layout pensado para celular e publicado com HTTPS, o que permite usar o microfone.
+
+### Modo Kids (6 a 10 anos)
+
+Escolhido na primeira tela ("Quem vai aprender?") ou pelo card **Modo Kids**. Tem visual claro e colorido e o papagaio **Kiko** como mascote.
+
+- **Cartões:** 85 palavras com ilustração 3D em 8 categorias (animais, cores, comidas, brinquedos, corpo, família, números e natureza). A criança vê a figura e fala o nome.
+- **Ouça e toque:** o app fala uma palavra e a criança toca na figura certa entre quatro da mesma categoria.
+- **Rimas:** 7 rimas tradicionais e cantigas curtas para ouvir e repetir frase por frase, com uma correção de fala mais tolerante que a dos adultos.
+- **Conversa com o Kiko:** conversas de 3 minutos por voz em 5 temas infantis. O prompt é fixo e tem regras de segurança: inglês bem simples, só temas infantis, nunca pede dados pessoais e, se a criança disser algo preocupante, orienta a falar com um adulto.
+- **Estrelas e adesivos:** cada acerto vale uma estrela, e cada 10 estrelas liberam um adesivo.
+- **Área dos pais:** protegida por uma conta de multiplicar. Mostra os dias praticados, as palavras aprendidas, as rimas e o tempo falando inglês, e permite voltar ao modo adulto.
 
 ## Tecnologias
 
@@ -80,8 +91,8 @@ O reconhecimento de voz funciona melhor no Chrome, no Edge e no Safari do iPhone
 
 ```
 src/
-  components/   telas: lições, exercícios, flashcards, conversa, nivelamento
-  data/         conteúdo: curso, vocabulário com imagens, temas, estilos da IA
+  components/   telas: lições, exercícios, flashcards, conversa, nivelamento, Modo Kids
+  data/         conteúdo: curso, vocabulário com imagens, temas, estilos da IA, conteúdo infantil (kids.ts)
   lib/          voz (síntese e reconhecimento), pontuação, progresso
 server/chat.ts  proxy da IA (validação, limites, prompt, novas tentativas)
 api/chat.ts     a mesma lógica como função serverless da Vercel

@@ -149,16 +149,19 @@ export function Conversation({
   style,
   onExit,
   onFinish,
+  seconds = SESSION_SECONDS,
 }: {
   topic: Topic;
   level: Level;
   style: AiStyle;
   onExit(): void;
   onFinish(seconds: number, userTurns: number): void;
+  /** Session length; the Kids mode uses a shorter one. */
+  seconds?: number;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
-  const [left, setLeft] = useState(SESSION_SECONDS);
+  const [left, setLeft] = useState(seconds);
   const [phase, setPhaseState] = useState<Phase>("thinking");
   // Hands-free once started: the first tap opens the mic (browsers want a tap for it), and from then on
   // it reopens by itself after the partner speaks, like a phone call.
@@ -302,7 +305,7 @@ export function Conversation({
 
   useEffect(() => {
     if (ended) return;
-    const t = setInterval(() => setLeft(SESSION_SECONDS - Math.floor((Date.now() - started.current) / 1000)), 500);
+    const t = setInterval(() => setLeft(seconds - Math.floor((Date.now() - started.current) / 1000)), 500);
     return () => clearInterval(t);
   }, [ended]);
 
@@ -317,8 +320,8 @@ export function Conversation({
     setPhase("idle");
     setLeft(0);
     setFeedback("");
-    const seconds = Math.min(SESSION_SECONDS, Math.round((Date.now() - started.current) / 1000));
-    onFinish(seconds, turns.filter((t) => t.role === "user").length);
+    const spent = Math.min(seconds, Math.round((Date.now() - started.current) / 1000));
+    onFinish(spent, turns.filter((t) => t.role === "user").length);
     try {
       await streamChat({ topic: topic.id, level, mode: "feedback", messages: turns, style }, (t) => setFeedback(t), abort.current.signal);
     } catch {
@@ -389,7 +392,7 @@ export function Conversation({
         <span className={`timer ${left <= 30 && !ended ? "low" : ""}`}>⏱ {clock}</span>
       </header>
       <div className="bar thin">
-        <div style={{ width: `${(1 - Math.max(left, 0) / SESSION_SECONDS) * 100}%` }} />
+        <div style={{ width: `${(1 - Math.max(left, 0) / seconds) * 100}%` }} />
       </div>
 
       <main className="convo-body">

@@ -10,7 +10,23 @@ export interface CardState {
   due: string;
 }
 
+/** Progress in the Kids mode, kept apart from the adult course. */
+export interface KidsProgress {
+  stars: number;
+  /** Stars earned per day (YYYY-MM-DD), for the parents' week view. */
+  daily: Record<string, number>;
+  cards: Record<string, CardState>;
+  /** rhymeId -> best stars (1..3). */
+  rhymes: Record<string, number>;
+  speakingSeconds: number;
+  chats: number;
+  games: number;
+}
+
 export interface Progress {
+  /** Who is learning; null until the first screen is answered. */
+  mode: "adult" | "kids" | null;
+  kids: KidsProgress;
   /** Set by the placement test (or by starting from zero); null until onboarding is done. */
   level: Level | null;
   cards: Record<string, CardState>;
@@ -37,7 +53,11 @@ export const GOALS = [
 
 const KEY = "papagaio.progress.v1";
 
+const emptyKids: KidsProgress = { stars: 0, daily: {}, cards: {}, rhymes: {}, speakingSeconds: 0, chats: 0, games: 0 };
+
 const empty: Progress = {
+  mode: null,
+  kids: emptyKids,
   level: null,
   cards: {},
   completed: {},
@@ -56,7 +76,9 @@ export function loadProgress(): Progress {
     const raw = localStorage.getItem(KEY);
     if (!raw) return { ...empty };
     const saved = JSON.parse(raw);
-    return { ...empty, ...saved, aiStyle: { ...DEFAULT_STYLE, ...saved.aiStyle } };
+    // Learners from before the Kids mode existed are adults.
+    const mode = saved.mode ?? (saved.level ? "adult" : null);
+    return { ...empty, ...saved, mode, kids: { ...emptyKids, ...saved.kids }, aiStyle: { ...DEFAULT_STYLE, ...saved.aiStyle } };
   } catch {
     return { ...empty };
   }
@@ -81,6 +103,13 @@ export function addXp(p: Progress, xp: number): Progress {
   let streak = p.streak;
   if (p.lastDay !== d) streak = p.lastDay === dayKey(-1) ? streak + 1 : 1;
   return { ...p, xp: p.xp + xp, daily: { ...p.daily, [d]: (p.daily[d] ?? 0) + xp }, streak, lastDay: d };
+}
+
+/** Adds stars from any kids activity. */
+export function addStars(p: Progress, stars: number, extra: Partial<KidsProgress> = {}): Progress {
+  const d = dayKey();
+  const k = { ...p.kids, ...extra };
+  return { ...p, kids: { ...k, stars: k.stars + stars, daily: { ...k.daily, [d]: (k.daily[d] ?? 0) + stars } } };
 }
 
 export function recordLesson(p: Progress, lessonId: string, stars: number, xp: number): Progress {
