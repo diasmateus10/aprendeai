@@ -98,7 +98,8 @@ function message(lastStudy: string | null, streak: number): { title: string; bod
 /** Sends today's reminders; returns how many went out. */
 export async function sendReminders(): Promise<{ sent: number; removed: number }> {
   const supabase = db();
-  const privateKey = process.env.VAPID_PRIVATE_KEY;
+  // Pasted keys often carry stray spaces or quotes; the key itself is 43 base64url characters.
+  const privateKey = process.env.VAPID_PRIVATE_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!supabase || !privateKey) throw new Error("SUPABASE_SECRET_KEY and VAPID_PRIVATE_KEY are required");
   // The contact push services see; the site's address keeps personal emails out of it.
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || "https://aprendeai-ruby.vercel.app", VAPID_PUBLIC_KEY, privateKey);
