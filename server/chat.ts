@@ -7,8 +7,9 @@ import type { Plugin } from "vite";
 import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 
-// ANTHROPIC_MODEL overrides it, e.g. claude-haiku-5-5 for faster and much cheaper replies.
-const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+// Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
+// ANTHROPIC_MODEL overrides it, e.g. claude-opus-5-5 for richer conversation at a much higher cost.
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-5-5";
 // Short spoken replies need little reasoning, and less effort means the first word comes sooner.
 const EFFORT = "low";
 const MAX_TURNS = 60;

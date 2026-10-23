@@ -52,7 +52,7 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 ### Detalhes técnicos
 
 - **A chave da IA nunca vai para o navegador.** O app chama `/api/chat`, e só o servidor fala com a API da Anthropic. O mesmo código roda como middleware do Vite no desenvolvimento e como função serverless na Vercel ([`server/chat.ts`](server/chat.ts)).
-- **Respostas rápidas:** esforço de raciocínio baixo e streaming. O modelo vem de `ANTHROPIC_MODEL` (padrão `claude-opus-5-5`; `claude-haiku-5-5` é mais rápido e mais barato).
+- **Respostas rápidas:** esforço de raciocínio baixo e streaming. O modelo vem de `ANTHROPIC_MODEL` (padrão `claude-haiku-5-5`, o mais rápido e barato; `claude-opus-5-5` conversa melhor, mas custa bem mais).
 - **Limite de uso por pessoa:** 5 conversas por dia, para um link público não gastar os créditos da API.
 - **Prompt montado a partir das escolhas do aluno**, validadas no servidor contra uma lista fixa de opções ([`src/data/aiStyle.ts`](src/data/aiStyle.ts)).
 - **Correspondência de respostas faladas** tolerante a plural, gerúndio e frases completas, sem aceitar palavras só parecidas.
