@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { X, ArrowLeft } from "@phosphor-icons/react";
 import { buildStage, levelFromStages, STAGE_COUNT, STAGE_PASS } from "../data/levels";
 import type { Exercise } from "../data/course";
 import type { Level } from "../lib/progress";
@@ -47,7 +48,7 @@ export function Placement({ onExit, onDone }: { onExit(): void; onDone(level: Le
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max((totalAnswered / (STAGE_COUNT * 3)) * 100, 3)}%` }} />

@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Heart, SpeakerHigh, X } from "@phosphor-icons/react";
 import { buildLesson, type Lesson as LessonT } from "../data/course";
 import { ExerciseView, type Outcome } from "./Exercises";
 import { speak, stopSpeaking } from "../lib/speech";
@@ -52,12 +53,14 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max(progress * 100, 3)}%` }} />
         </div>
-        <span className="hearts">❤️ {hearts}</span>
+        <span className="hearts" aria-label={`${hearts} vidas`}>
+          <Heart size={20} weight="fill" /> {hearts}
+        </span>
       </header>
 
       <main className="lesson-body">
@@ -78,8 +81,12 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
               {outcome.solution && (
                 <p>
                   {outcome.solution}{" "}
-                  <button className="mini" onClick={() => speak(outcome.solution!.split(" — ")[0].replace(/ \(.*\)$/, ""))}>
-                    🔊
+                  <button
+                    className="mini"
+                    onClick={() => speak(outcome.solution!.split(" — ")[0].replace(/ \(.*\)$/, ""))}
+                    aria-label="Ouvir a resposta"
+                  >
+                    <SpeakerHigh size={18} weight="fill" />
                   </button>
                 </p>
               )}

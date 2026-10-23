@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Sparkle } from "@phosphor-icons/react";
 import { englishVoices, isNaturalVoice, onVoicesChanged, speak, ttsSupported, usingServerVoice } from "../lib/speech";
 
 const SAMPLE = "Hi! This is how I sound. Let's practice English together.";
@@ -15,7 +16,7 @@ export function VoicePicker({ value, onChange }: { value: string | null; onChang
       <div className="style-row">
         <div className="card-label">Voz</div>
         <p className="hint small">
-          🌟 Voz natural ativa (a mesma em qualquer aparelho). O sotaque acima escolhe entre a voz americana e a britânica.{" "}
+          Voz natural ativa (a mesma em qualquer aparelho). O sotaque acima escolhe entre a voz americana e a britânica.{" "}
           <button className="link" onClick={() => speak(SAMPLE)}>
             Ouvir
           </button>
@@ -40,7 +41,7 @@ export function VoicePicker({ value, onChange }: { value: string | null; onChang
       <div className="card-label">Voz</div>
       <div className="style-options">
         <button className={`style-chip ${value === null ? "on" : ""}`} onClick={() => pick(null)}>
-          ✨ Automática
+          <Sparkle size={16} weight="fill" /> Automática
         </button>
         {shown.map((v) => (
           <button
@@ -49,13 +50,13 @@ export function VoicePicker({ value, onChange }: { value: string | null; onChang
             onClick={() => pick(v.name)}
             title={`${v.name} (${v.lang})`}
           >
-            {isNaturalVoice(v) ? "🌟 " : ""}
+            {isNaturalVoice(v) && <Sparkle size={14} weight="fill" aria-label="natural" />}
             {shortName(v.name)} <span className="voice-lang">{v.lang.replace("_", "-").slice(3)}</span>
           </button>
         ))}
       </div>
       <p className="hint small">
-        Toque numa voz para ouvir. 🌟 = soa mais natural. A voz vale para o app todo.
+        Toque numa voz para ouvir. As marcadas com brilho soam mais naturais. A voz vale para o app todo.
         {!hasNatural && voices.length > 0 && <> {voiceTip()}</>}
         {voices.length === 0 && " Nenhuma voz em inglês encontrada neste aparelho."}
       </p>

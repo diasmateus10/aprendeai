@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Keyboard, NotePencil, PersonSimpleWalk, SpeakerHigh, Timer, X } from "@phosphor-icons/react";
 import { SESSION_SECONDS, TOPICS, type Topic } from "../data/topics";
 import { ACCENTS, CORRECTIONS, LENGTHS, PERSONAS, type AiStyle, type Option } from "../data/aiStyle";
 import { VoicePicker } from "./VoicePicker";
+import { imageFor } from "../data/vocab";
 import type { Level } from "../lib/progress";
 import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
@@ -62,7 +64,7 @@ function OptionRow<T extends string>({
       <div className="style-options">
         {options.map((o) => (
           <button key={o.id} className={`style-chip ${o.id === value ? "on" : ""}`} onClick={() => onChange(o.id)} title={o.description}>
-            <span>{o.emoji}</span> {o.label}
+            {o.label}
           </button>
         ))}
       </div>
@@ -91,19 +93,18 @@ export function TopicPicker({
     <div className="page">
       <header className="page-top">
         <button className="close" onClick={onExit} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Conversa com IA</h1>
       </header>
       <p className="hint">Escolha como a IA fala com você e um tema. A conversa dura até 5 minutos, com voz.</p>
-      {isIOS && !usingServerVoice() && <p className="hint small">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir a IA.</p>}
+      {isIOS && !usingServerVoice() && <p className="hint small">No iPhone, tire do modo silencioso (chave na lateral) para ouvir a IA.</p>}
 
       <details className="card style-card">
         <summary>
           <span className="card-label">Estilo da IA</span>
           <strong>
-            {persona.emoji} {persona.label} · {LENGTHS.find((l) => l.id === style.length)!.label} ·{" "}
-            {ACCENTS.find((a) => a.id === style.accent)!.emoji}
+            {persona.label} · {LENGTHS.find((l) => l.id === style.length)!.label} · {ACCENTS.find((a) => a.id === style.accent)!.label}
           </strong>
           <span className="link">Alterar</span>
         </summary>
@@ -114,7 +115,7 @@ export function TopicPicker({
         <VoicePicker value={voiceName} onChange={onVoice} />
         {style.persona === "unfiltered" && (
           <p className="hint small">
-            🔥 “Sem filtro” usa gírias e palavrões leves, como nativos falam no dia a dia. Os filtros de segurança do Google continuam ativos.
+            “Sem filtro” usa gírias e palavrões leves, como nativos falam no dia a dia. Os filtros de segurança do Google continuam ativos.
           </p>
         )}
       </details>
@@ -123,7 +124,7 @@ export function TopicPicker({
       <div className="topic-grid">
         {TOPICS.map((t) => (
           <button key={t.id} className="topic" onClick={() => onPick(t)}>
-            <span className="topic-emoji">{t.emoji}</span>
+            <img className="topic-pic" src={imageFor(t.emoji)} alt="" width={44} height={44} />
             <strong>{t.title}</strong>
             <span>{t.description}</span>
           </button>
@@ -288,7 +289,7 @@ export function Conversation({
     } catch (e) {
       setStreaming(null);
       setPhase("idle");
-      if ((e as Error).name !== "AbortError") setError("Não consegui conectar com a IA. Verifique se o servidor está rodando.");
+      if ((e as Error).name !== "AbortError") setError("A conversa caiu por um instante. Toque em “Tentar de novo”.");
     }
   };
 
@@ -388,12 +389,12 @@ export function Conversation({
     <div className="lesson convo">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="convo-title">
-          <span>{topic.emoji}</span> {topic.title}
+          <img className="convo-pic" src={imageFor(topic.emoji)} alt="" width={24} height={24} /> {topic.title}
         </div>
-        <span className={`timer ${left <= 30 && !ended ? "low" : ""}`}>⏱ {clock}</span>
+        <span className={`timer ${left <= 30 && !ended ? "low" : ""}`}><Timer size={18} weight="bold" /> {clock}</span>
       </header>
       <div className="bar thin">
         <div style={{ width: `${(1 - Math.max(left, 0) / seconds) * 100}%` }} />
@@ -413,11 +414,11 @@ export function Conversation({
             <div key={i} className="msg ai">
               <p>{said}</p>
               <div className="msg-tools">
-                <button className="mini" onClick={() => replay(said)} aria-label="Ouvir">
-                  🔊
+                <button className="mini" onClick={() => replay(said)} aria-label="Ouvir de novo">
+                  <SpeakerHigh size={18} weight="fill" />
                 </button>
-                <button className="mini" onClick={() => replay(said, true)} aria-label="Ouvir devagar">
-                  🐢
+                <button className="mini slow" onClick={() => replay(said, true)} aria-label="Ouvir devagar">
+                  <PersonSimpleWalk size={16} weight="bold" /> Devagar
                 </button>
               </div>
               {tip && <p className="msg-tip">{tip}</p>}
@@ -438,7 +439,9 @@ export function Conversation({
         )}
         {feedback !== null && (
           <div className="feedback-card">
-            <h2>📝 Feedback da conversa</h2>
+            <h2>
+              <NotePencil size={22} weight="duotone" /> Como você foi
+            </h2>
             {feedback ? (
               feedback
                 .split("\n")
@@ -491,7 +494,13 @@ export function Conversation({
           <div className="convo-actions">
             {sttSupported && (
               <button className="link" onClick={() => setTyping(!typing)}>
-                {typing ? "Esconder teclado" : "⌨️ Digitar"}
+                {typing ? (
+                  "Esconder teclado"
+                ) : (
+                  <>
+                    <Keyboard size={18} weight="bold" /> Digitar
+                  </>
+                )}
               </button>
             )}
             <button className="link" onClick={finish}>

@@ -1,11 +1,39 @@
 import { useState, type FormEvent } from "react";
+import { Eye, EyeSlash } from "@phosphor-icons/react";
 import { sendPasswordReset, signIn, signUp, updatePassword } from "../lib/account";
+import { Logo, Mascot } from "./Brand";
 
 type Tab = "signin" | "signup";
 
+/** Password field with a visible label and a show/hide toggle. */
+function PasswordField({
+  label,
+  value,
+  onChange,
+  autoComplete,
+}: {
+  label: string;
+  value: string;
+  onChange(v: string): void;
+  autoComplete: string;
+}) {
+  const [shown, setShown] = useState(false);
+  return (
+    <label className="field">
+      <span>{label}</span>
+      <span className="field-row">
+        <input type={shown ? "text" : "password"} autoComplete={autoComplete} minLength={6} value={value} onChange={(e) => onChange(e.target.value)} required />
+        <button type="button" className="field-toggle" onClick={() => setShown(!shown)} aria-label={shown ? "Esconder senha" : "Mostrar senha"}>
+          {shown ? <EyeSlash size={20} /> : <Eye size={20} />}
+        </button>
+      </span>
+    </label>
+  );
+}
+
 /** Sign in or create an account (e-mail and password). Progress already on this device goes to the account. */
 export function AuthScreen() {
-  const [tab, setTab] = useState<Tab>("signin");
+  const [tab, setTab] = useState<Tab>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -38,36 +66,47 @@ export function AuthScreen() {
   };
 
   return (
-    <div className="result">
-      <div className="result-card auth-card">
-        <div className="mascot big">🦜</div>
-        <h1>AprendeAI</h1>
-        <p className="hint">Entre para salvar seu progresso e continuar em qualquer aparelho.</p>
+    <div className="auth">
+      <section className="auth-hero">
+        <Logo size={30} />
+        <Mascot mood="happy" size={132} className="auth-mascot" />
+        <h1>Fale inglês de verdade, com quem nunca cansa de ouvir.</h1>
+        <p>Converse em voz alta com uma IA, receba correção na hora e treine a pronúncia que mais trava brasileiros.</p>
+      </section>
 
-        <div className="auth-tabs" role="tablist">
-          <button role="tab" aria-selected={tab === "signin"} className={tab === "signin" ? "on" : ""} onClick={() => setTab("signin")}>
-            Entrar
-          </button>
+      <section className="auth-panel">
+        <div className="auth-tabs" role="tablist" aria-label="Entrar ou criar conta">
           <button role="tab" aria-selected={tab === "signup"} className={tab === "signup" ? "on" : ""} onClick={() => setTab("signup")}>
             Criar conta
+          </button>
+          <button role="tab" aria-selected={tab === "signin"} className={tab === "signin" ? "on" : ""} onClick={() => setTab("signin")}>
+            Já tenho conta
           </button>
         </div>
 
         <form className="auth-form" onSubmit={submit}>
-          <input type="email" autoComplete="email" placeholder="E-mail" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <input
-            type="password"
-            autoComplete={tab === "signin" ? "current-password" : "new-password"}
-            placeholder={tab === "signin" ? "Senha" : "Crie uma senha (mínimo 6 caracteres)"}
-            minLength={6}
+          <label className="field">
+            <span>E-mail</span>
+            <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+          </label>
+          <PasswordField
+            label={tab === "signin" ? "Senha" : "Crie uma senha (6 ou mais caracteres)"}
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            onChange={setPassword}
+            autoComplete={tab === "signin" ? "current-password" : "new-password"}
           />
-          {error && <p className="warn">{error}</p>}
-          {info && <p className="auth-info">{info}</p>}
-          <button className="btn primary block" disabled={busy}>
-            {busy ? "Aguarde…" : tab === "signin" ? "Entrar" : "Criar conta"}
+          {error && (
+            <p className="warn" role="alert">
+              {error}
+            </p>
+          )}
+          {info && (
+            <p className="auth-info" role="status">
+              {info}
+            </p>
+          )}
+          <button className="btn primary block lg" disabled={busy}>
+            {busy ? "Um instante…" : tab === "signin" ? "Entrar" : "Criar conta grátis"}
           </button>
         </form>
 
@@ -76,9 +115,9 @@ export function AuthScreen() {
             Esqueci minha senha
           </button>
         ) : (
-          <p className="hint small">O progresso que já está neste aparelho vai junto para a sua conta nova.</p>
+          <p className="hint small">Se você já usava o app neste aparelho, seu progresso vai junto para a conta.</p>
         )}
-      </div>
+      </section>
     </div>
   );
 }
@@ -99,26 +138,25 @@ export function NewPasswordScreen({ onDone }: { onDone(): void }) {
   };
 
   return (
-    <div className="result">
-      <div className="result-card auth-card">
-        <div className="mascot big">🔑</div>
-        <h1>Nova senha</h1>
+    <div className="auth">
+      <section className="auth-hero">
+        <Logo size={30} />
+        <Mascot mood="thinking" size={120} className="auth-mascot" />
+        <h1>Crie uma senha nova.</h1>
+      </section>
+      <section className="auth-panel">
         <form className="auth-form" onSubmit={submit}>
-          <input
-            type="password"
-            autoComplete="new-password"
-            placeholder="Nova senha (mínimo 6 caracteres)"
-            minLength={6}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-          {error && <p className="warn">{error}</p>}
-          <button className="btn primary block" disabled={busy}>
-            {busy ? "Aguarde…" : "Salvar senha"}
+          <PasswordField label="Nova senha (6 ou mais caracteres)" value={password} onChange={setPassword} autoComplete="new-password" />
+          {error && (
+            <p className="warn" role="alert">
+              {error}
+            </p>
+          )}
+          <button className="btn primary block lg" disabled={busy}>
+            {busy ? "Um instante…" : "Salvar senha"}
           </button>
         </form>
-      </div>
+      </section>
     </div>
   );
 }

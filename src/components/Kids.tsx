@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ArrowLeft, Gift, Microphone, MusicNotes, Star, Stop, Users, X } from "@phosphor-icons/react";
+import { Mascot } from "./Brand";
+import { SoundButtons } from "./ui";
 import {
   ageBand,
   AGES,
@@ -82,9 +85,7 @@ function Stars({ n, of = 3 }: { n: number; of?: number }) {
   return (
     <span className="kids-stars" aria-label={`${n} de ${of} estrelas`}>
       {Array.from({ length: of }, (_, i) => (
-        <span key={i} className={i < n ? "on" : ""}>
-          ★
-        </span>
+        <Star key={i} weight="fill" className={i < n ? "on" : ""} />
       ))}
     </span>
   );
@@ -248,10 +249,11 @@ export function KidsApp({
       page = (
         <div className="result">
           <div className="result-card kids-done">
-            <Pic emoji={MASCOT} size={120} className="kids-bounce" />
+            <Mascot mood="happy" size={120} className="kids-bounce" />
             <h1>{screen.title}</h1>
             {screen.stars > 0 && <Stars n={screen.stars} />}
-            <p className="kids-total">⭐ {kids.stars - startStars.current > 0 ? `+${kids.stars - startStars.current} estrelas` : "Continue praticando!"}</p>
+            <p className="kids-total">
+              <Star size={20} weight="fill" /> {kids.stars - startStars.current > 0 ? `+${kids.stars - startStars.current} estrelas` : "Continue praticando!"}</p>
             {unlocked > 0 && newest && (
               <div className="kids-new-sticker">
                 <Pic emoji={newest} size={88} className="kids-pop" />
@@ -320,29 +322,31 @@ function KidsHome({
   const hello = "Hi! I am Kiko. Let's play in English!";
   const tiles = [
     band.speak
-      ? { emoji: "🃏", title: "Cartões", sub: "Veja e fale", color: "#ff8a5b", onClick: onFlashcards }
-      : { emoji: "📖", title: "Livro de figuras", sub: "Veja e ouça", color: "#ff8a5b", onClick: onFlashcards },
-    { emoji: "👂", title: "Ouça e toque", sub: "Ache a figura", color: "#4cb8ff", onClick: onListen },
-    { emoji: "🎵", title: band.speak ? "Rimas" : "Músicas", sub: band.speak ? "Ouça e repita" : "Ouça e cante junto", color: "#b57bff", onClick: onRhymes },
+      ? { emoji: "🃏", title: "Cartões", sub: "Veja e fale", color: "#ff6b4a", onClick: onFlashcards }
+      : { emoji: "📖", title: "Livro de figuras", sub: "Veja e ouça", color: "#ff6b4a", onClick: onFlashcards },
+    { emoji: "👂", title: "Ouça e toque", sub: "Ache a figura", color: "#5b8cff", onClick: onListen },
+    { emoji: "🎵", title: band.speak ? "Rimas" : "Músicas", sub: band.speak ? "Ouça e repita" : "Ouça e cante junto", color: "#9d6bff", onClick: onRhymes },
     // Babies do not talk yet: no conversation for 0-3.
-    ...(band.chatSeconds ? [{ emoji: MASCOT, title: "Conversar", sub: "Fale com o Kiko", color: "#3fcf8e", onClick: onChat }] : []),
+    ...(band.chatSeconds ? [{ emoji: MASCOT, title: "Conversar", sub: "Fale com o Kiko", color: "#22b07a", onClick: onChat }] : []),
   ];
   return (
     <div className="kids-home">
       <header className="kids-top">
         <button className="kids-mascot" onClick={() => speak(hello)} aria-label="Ouvir o Kiko">
-          <Pic emoji={MASCOT} size={84} className="kids-bounce" />
+          <Mascot mood="happy" size={84} className="kids-bounce" />
           <span className="kids-bubble">
             Oi! Eu sou o <strong>Kiko</strong>. Vamos brincar em inglês?
           </span>
         </button>
         <div className="kids-counters">
-          <button className="kids-chip kids-leave" onClick={onLeave}>
-            ← Sair do Modo Kids
+          <button className="kids-chip kids-leave" onClick={onLeave} aria-label="Sair do Modo Kids">
+            <ArrowLeft size={16} weight="bold" /> Sair
           </button>
-          <span className="kids-chip">⭐ {kids.stars}</span>
+          <span className="kids-chip" aria-label={`${kids.stars} estrelas`}>
+            <Star size={18} weight="fill" className="gold" /> {kids.stars}
+          </span>
           <button className="kids-chip" onClick={onStickers}>
-            🎁 {stickers}/{STICKERS.length}
+            <Gift size={18} weight="fill" className="coral" /> {stickers}/{STICKERS.length}
           </button>
         </div>
       </header>
@@ -350,11 +354,11 @@ function KidsHome({
       <div className="kids-progress" title={`Faltam ${toNext} estrelas para o próximo adesivo`}>
         <div style={{ width: `${((STARS_PER_STICKER - toNext) / STARS_PER_STICKER) * 100}%` }} />
         <span>
-          {stickers < STICKERS.length ? `Faltam ${toNext} ⭐ para o próximo adesivo` : "Você ganhou todos os adesivos! 🎉"}
+          {stickers < STICKERS.length ? `Faltam ${toNext} estrelas para o próximo adesivo` : "Você ganhou todos os adesivos!"}
         </span>
       </div>
 
-      {isIOS && !usingServerVoice() && <div className="banner">🔔 No iPhone, tire do modo silencioso (chave na lateral) para ouvir o Kiko.</div>}
+      {isIOS && !usingServerVoice() && <div className="banner">No iPhone, tire do modo silencioso (chave na lateral) para ouvir o Kiko.</div>}
       {!sttSupported && <div className="banner">Para falar com o Kiko, abra no Chrome ou no Edge. Os jogos de ouvir funcionam em qualquer navegador.</div>}
 
       <main className="kids-tiles">
@@ -366,12 +370,12 @@ function KidsHome({
             style={{ background: t.color }}
             onClick={t.onClick}
           >
-            <Pic emoji={t.emoji} size={72} />
+            {t.emoji === MASCOT ? <Mascot size={72} /> : <Pic emoji={t.emoji} size={72} />}
             <strong>{t.title}</strong>
             <span>{t.sub}</span>
           </button>
         ))}
-        <button className="kids-tile wide" style={{ background: "#ffc93c" }} onClick={onStickers}>
+        <button className="kids-tile wide" style={{ background: "#ffc24b" }} onClick={onStickers}>
           <Pic emoji="🦄" size={56} />
           <div>
             <strong>Meus adesivos</strong>
@@ -381,7 +385,7 @@ function KidsHome({
       </main>
 
       <button className="link kids-parents-link" onClick={onParents}>
-        👨‍👩‍👧 Área dos pais
+        <Users size={18} weight="bold" /> Área dos pais
       </button>
     </div>
   );
@@ -461,7 +465,7 @@ function ListenTap({
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max((i / rounds.length) * 100, 3)}%` }} />
@@ -473,12 +477,7 @@ function ListenTap({
       <main className="lesson-body kids-listen">
         <h2>Toque na figura que você ouvir</h2>
         <div className="audio-buttons center">
-          <button className="audio-btn big" onClick={() => speak(round.answer.en)} aria-label="Ouvir">
-            🔊
-          </button>
-          <button className="audio-btn small" onClick={() => speak(round.answer.en, true)} aria-label="Ouvir devagar">
-            🐢
-          </button>
+          <SoundButtons text={round.answer.en} size="lg" />
         </div>
         <div className="kids-options">
           {round.options.map((o) => {
@@ -498,7 +497,7 @@ function ListenTap({
             );
           })}
         </div>
-        <p className="kids-feedback">{solved ? (wrong.length === 0 ? "⭐ Muito bem!" : "Isso! Achou!") : wrong.length ? "Quase! Ouça de novo e tente outra." : " "}</p>
+        <p className="kids-feedback">{solved ? (wrong.length === 0 ? praise(i) : "Isso! Achou!") : wrong.length ? "Quase! Ouça de novo e tente outra." : " "}</p>
       </main>
     </div>
   );
@@ -509,7 +508,7 @@ function RhymeList({ best, onPick, onExit }: { best: Record<string, number>; onP
     <div className="page">
       <header className="page-top">
         <button className="close" onClick={onExit} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Rimas e músicas</h1>
       </header>
@@ -531,6 +530,10 @@ function RhymeList({ best, onPick, onExit }: { best: Record<string, number>; onP
 }
 
 const LINE_TRIES = 2;
+
+const PRAISE = ["Isso aí!", "Acertou em cheio!", "Que ouvido bom!", "Mandou bem!", "Perfeito!"];
+/** A different cheer per round, so success doesn't sound canned. */
+const praise = (n: number) => PRAISE[n % PRAISE.length];
 
 function RhymePlay({
   rhyme,
@@ -626,7 +629,7 @@ function RhymePlay({
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max((i / rhyme.lines.length) * 100, 3)}%` }} />
@@ -652,19 +655,18 @@ function RhymePlay({
           <p className="kids-line-pt">{line.pt}</p>
         </div>
         <div className="audio-buttons center">
-          <button className="audio-btn small" onClick={() => speak(line.en)} aria-label="Ouvir">
-            🔊
-          </button>
-          <button className="audio-btn small" onClick={() => speak(line.en, true)} aria-label="Ouvir devagar">
-            🐢
-          </button>
+          <SoundButtons text={line.en} size="lg" />
         </div>
 
-        {listenOnly && <p className="kids-feedback">🎵 Ouça e cante junto!</p>}
+        {listenOnly && (
+          <p className="kids-feedback">
+            <MusicNotes size={20} weight="fill" /> Ouça e cante junto!
+          </p>
+        )}
         {sttSupported && !listenOnly && !ok && (
           <div className="mic-panel">
             <button className={`mic ${recording ? "on" : ""}`} onClick={record} aria-label={recording ? "Parar" : "Falar"}>
-              {recording ? "■" : "🎤"}
+              {recording ? <Stop size={34} weight="fill" /> : <Microphone size={40} weight="fill" />}
             </button>
             <span className="mic-label">
               {recording ? interim || "Pode falar…" : score ? "Quase! Tente de novo" : "Toque e repita a frase"}
@@ -672,7 +674,11 @@ function RhymePlay({
           </div>
         )}
         {micError && <p className="warn">{micError}</p>}
-        {ok && <p className="kids-feedback">⭐ Muito bem!</p>}
+        {ok && (
+          <p className="kids-feedback">
+            <Star size={20} weight="fill" /> {praise(i)}
+          </p>
+        )}
 
         {canGoOn && (
           <button className="btn primary kids-next" onClick={next}>
@@ -689,12 +695,12 @@ function KidsTopics({ band, onPick, onExit }: { band: AgeBand; onPick(t: KidsTop
     <div className="page">
       <header className="page-top">
         <button className="close" onClick={onExit} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Conversar com o Kiko</h1>
       </header>
       <p className="hint">Escolha um assunto. Toque na bolinha e fale em inglês: o Kiko responde! A conversa dura {band.chatSeconds / 60} minutos.</p>
-      {isIOS && !usingServerVoice() && <p className="hint small">🔔 No iPhone, tire do modo silencioso para ouvir o Kiko.</p>}
+      {isIOS && !usingServerVoice() && <p className="hint small">No iPhone, tire do modo silencioso para ouvir o Kiko.</p>}
       <div className="topic-grid">
         {topicsFor(band.id).map((t) => (
           <button key={t.id} className="topic kids-topic" onClick={() => onPick(t)}>
@@ -714,7 +720,7 @@ function AgePicker({ value, onPick, onBack }: { value: KidsAge | null; onPick(ag
     <div className="page">
       <header className="page-top">
         <button className="close" onClick={onBack} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Qual a idade da criança?</h1>
       </header>
@@ -769,7 +775,7 @@ function PictureBook({ cards, onSeen, onDone, onExit }: { cards: Card[]; onSeen(
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max((i / cards.length) * 100, 3)}%` }} />
@@ -785,12 +791,7 @@ function PictureBook({ cards, onSeen, onDone, onExit }: { cards: Card[]; onSeen(
         <p className="kids-line-en">{card.en}</p>
         <p className="kids-line-pt">{card.pt}</p>
         <div className="audio-buttons center">
-          <button className="audio-btn small" onClick={() => speak(card.en)} aria-label="Ouvir">
-            🔊
-          </button>
-          <button className="audio-btn small" onClick={() => speak(card.en, true)} aria-label="Ouvir devagar">
-            🐢
-          </button>
+          <SoundButtons text={card.en} size="lg" />
         </div>
         <p className="hint">Toque na figura para ouvir de novo. Repita junto com a criança!</p>
         <button className="btn primary kids-next" onClick={next}>
@@ -807,17 +808,19 @@ function StickerBook({ stars, onExit }: { stars: number; onExit(): void }) {
     <div className="page">
       <header className="page-top">
         <button className="close" onClick={onExit} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Meus adesivos</h1>
       </header>
       <p className="hint">
-        A cada {STARS_PER_STICKER} estrelas você ganha um adesivo. Você tem ⭐ {stars}.
+        A cada {STARS_PER_STICKER} estrelas você ganha um adesivo. Você tem {stars}.
       </p>
       <div className="kids-stickers">
         {STICKERS.map((s, i) => (
           <div key={s} className={`kids-sticker ${i < unlocked ? "on" : ""}`}>
-            {i < unlocked ? <Pic emoji={s} size={72} /> : <span className="kids-lock">{(i + 1) * STARS_PER_STICKER}⭐</span>}
+            {i < unlocked ? <Pic emoji={s} size={72} /> : <span className="kids-lock">
+                <Star size={14} weight="fill" /> {(i + 1) * STARS_PER_STICKER}
+              </span>}
           </div>
         ))}
       </div>
@@ -897,7 +900,7 @@ function ParentPanel({
     <div className="page kids-parents">
       <header className="page-top">
         <button className="close" onClick={onExit} aria-label="Voltar">
-          ←
+          <ArrowLeft size={22} weight="bold" />
         </button>
         <h1>Área dos pais</h1>
       </header>
@@ -931,7 +934,7 @@ function ParentPanel({
 
       <div className="kids-stats">
         <div>
-          <strong>⭐ {kids.stars}</strong>
+          <strong>{kids.stars}</strong>
           <span>estrelas</span>
         </div>
         <div>

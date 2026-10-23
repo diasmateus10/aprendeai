@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { ArrowLeft, Cards, CheckCircle, Lightbulb, Microphone, Stop, X } from "@phosphor-icons/react";
+import { Mascot } from "./Brand";
+import { SoundButtons } from "./ui";
 import { categoriesFor, imageFor } from "../data/vocab";
 import type { CardState, Level } from "../lib/progress";
 import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
@@ -144,7 +147,7 @@ export function Flashcards({
     return (
       <div className="result">
         <div className="result-card">
-          <div className="mascot big">🃏</div>
+          <Mascot mood={known ? "happy" : "neutral"} size={112} className="result-mascot" />
           <h1>{cards.length ? "Revisão concluída!" : "Nada para revisar hoje"}</h1>
           <p className="hint">
             {cards.length
@@ -165,12 +168,14 @@ export function Flashcards({
     <div className="lesson">
       <header className="lesson-top">
         <button className="close" onClick={onExit} aria-label="Sair">
-          ✕
+          <X size={22} weight="bold" />
         </button>
         <div className="bar">
           <div style={{ width: `${Math.max((known / cards.length) * 100, 3)}%` }} />
         </div>
-        <span className="stage-tag">🃏 {queue.length}</span>
+        <span className="stage-tag" aria-label={`${queue.length} cartões restantes`}>
+          <Cards size={18} weight="bold" /> {queue.length}
+        </span>
       </header>
       <main className="lesson-body flash-body">
         <PictureCard key={`${card.id}-${queue.length}`} card={card} onDone={rate} />
@@ -263,15 +268,11 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
             <div className="flash-en">{card.en}</div>
             <div className="flash-pt">{card.pt}</div>
             <div className="audio-buttons center">
-              <button className="audio-btn small" onClick={() => speak(card.en)} aria-label="Ouvir">
-                🔊
-              </button>
-              <button className="audio-btn small" onClick={() => speak(card.en, true)} aria-label="Ouvir devagar">
-                🐢
-              </button>
+              <SoundButtons text={card.en} />
             </div>
             {phase === "right" ? (
-              <p className="picture-ok">✅ {tries === 0 && !hint ? "Isso aí, de primeira!" : "Acertou!"}</p>
+              <p className="picture-ok">
+                <CheckCircle size={20} weight="fill" />{" "}{tries === 0 && !hint ? "Isso aí, de primeira!" : "Acertou!"}</p>
             ) : (
               <p className="hint">Ouça e repita em voz alta para fixar.</p>
             )}
@@ -284,7 +285,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
           {sttSupported && (
             <div className="card-mic">
               <button className={`mic ${recording ? "on" : ""}`} onClick={toggleMic} aria-label={recording ? "Parar" : "Falar"}>
-                {recording ? "■" : "🎤"}
+                {recording ? <Stop size={34} weight="fill" /> : <Microphone size={40} weight="fill" />}
               </button>
               <span>{recording ? interim || "Ouvindo…" : "Toque e diga o nome"}</span>
             </div>
@@ -309,7 +310,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
           <div className="flash-actions">
             {!hint && (
               <button className="btn secondary" onClick={() => setHint(true)}>
-                💡 Dica
+                <Lightbulb size={18} weight="fill" /> Dica
               </button>
             )}
             <button className="btn secondary" onClick={reveal}>

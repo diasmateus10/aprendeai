@@ -1,4 +1,7 @@
 import { useEffect, useRef, useState } from "react";
+import { ChatCircleDots, Lightbulb, Microphone, Stop } from "@phosphor-icons/react";
+import { Mascot } from "./Brand";
+import { SoundButtons } from "./ui";
 import type { Exchange, Exercise, Phrase } from "../data/course";
 import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 import { scoreSpeech, scoreTyped, SPEAK_PASS, TYPE_PASS, type Score } from "../lib/score";
@@ -46,12 +49,7 @@ function AudioButtons({ text, autoplay = true }: { text: string; autoplay?: bool
   }, [text, autoplay]);
   return (
     <div className="audio-buttons">
-      <button className="audio-btn big" onClick={() => speak(text)} aria-label="Ouvir">
-        🔊
-      </button>
-      <button className="audio-btn small" onClick={() => speak(text, true)} aria-label="Ouvir devagar">
-        🐢
-      </button>
+      <SoundButtons text={text} size="lg" />
     </div>
   );
 }
@@ -251,7 +249,7 @@ function MicPanel({ s, locked }: { s: ReturnType<typeof useSpeaking>; locked: bo
         onClick={s.recording ? s.stop : s.start}
         aria-label={s.recording ? "Parar" : "Falar"}
       >
-        {s.recording ? "■" : "🎤"}
+        {s.recording ? <Stop size={34} weight="fill" /> : <Microphone size={40} weight="fill" />}
       </button>
       <p className="mic-label">{s.recording ? s.interim || "Ouvindo... fale agora" : s.tries ? "Toque para tentar de novo" : "Toque e fale"}</p>
       {s.score && !s.recording && (
@@ -307,7 +305,11 @@ function SpeakView({ phrase, mode, onAnswer, onSpeakingTime, locked }: Props & {
           )}
         </>
       )}
-      {phrase.tip && <p className="tip">💡 {phrase.tip}</p>}
+      {phrase.tip && (
+        <p className="tip">
+          <Lightbulb size={18} weight="fill" /> {phrase.tip}
+        </p>
+      )}
       <MicPanel s={s} locked={locked} />
     </div>
   );
@@ -322,7 +324,9 @@ function Respond({ exchange, onAnswer, onSpeakingTime, locked }: Props & { excha
       <h2>Responda em voz alta</h2>
       <div className="chat">
         <div className="bubble them">
-          <span className="avatar">🧑‍🦱</span>
+          <span className="avatar">
+            <Mascot size={48} />
+          </span>
           <div>
             <AudioButtons text={exchange.q} />
             <p>{exchange.q}</p>
@@ -338,7 +342,7 @@ function Respond({ exchange, onAnswer, onSpeakingTime, locked }: Props & { excha
       </div>
       {showModel ? (
         <p className="tip">
-          💬 Exemplo: <strong>{exchange.answers[0]}</strong> — {exchange.answerPt}
+          <ChatCircleDots size={18} weight="fill" /> Exemplo: <strong>{exchange.answers[0]}</strong> — {exchange.answerPt}
         </p>
       ) : (
         <button className="link" onClick={() => setShowModel(true)}>

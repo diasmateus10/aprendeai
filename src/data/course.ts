@@ -48,7 +48,6 @@ export interface Lesson {
   id: string;
   unitId: string;
   title: string;
-  icon: string;
   focus: "escuta" | "fala" | "conversa";
 }
 
@@ -57,7 +56,7 @@ export const units: Unit[] = [
     id: "hello",
     title: "Primeiras palavras",
     subtitle: "Cumprimentos e o H aspirado",
-    color: "#0ea5a4",
+    color: "#3dd6c6",
     guide: [
       "Em inglês, o H no começo da palavra é pronunciado: é um sopro leve, como o 'rr' de 'carro' bem suave.",
       "'Hello' soa 'rrélou', não 'élou'. 'Hi' soa 'rrai'.",
@@ -85,7 +84,7 @@ export const units: Unit[] = [
     id: "th",
     title: "O som do TH",
     subtitle: "think, this, thank you",
-    color: "#8b5cf6",
+    color: "#b58cff",
     guide: [
       "O TH não existe em português. Coloque a ponta da língua entre os dentes e sopre.",
       "TH 'surdo' (think, three, thank): só ar, sem vibrar a garganta. Não é 'f', nem 's', nem 't'.",
@@ -115,7 +114,7 @@ export const units: Unit[] = [
     id: "vowels",
     title: "Vogais curtas e longas",
     subtitle: "ship × sheep, live × leave",
-    color: "#f59e0b",
+    color: "#ffc24b",
     guide: [
       "Inglês diferencia vogais curtas e longas, e isso muda o sentido da palavra.",
       "'ee' longo (sheep, leave): um 'i' esticado, sorrindo. 'i' curto (ship, live): um 'i' relaxado, quase 'ê'.",
@@ -145,7 +144,7 @@ export const units: Unit[] = [
     id: "endings",
     title: "Finais sem 'i' extra",
     subtitle: "big, like, Facebook",
-    color: "#ef4444",
+    color: "#ff6b4a",
     guide: [
       "Brasileiros costumam colocar um 'i' depois de consoantes finais: 'bigui', 'laiki', 'feicibuqui'.",
       "Em inglês a palavra termina seca na consoante: 'big', 'like', 'book'.",
@@ -174,7 +173,7 @@ export const units: Unit[] = [
     id: "r-l",
     title: "R e L do inglês",
     subtitle: "red, right, world, people",
-    color: "#3b82f6",
+    color: "#5b8cff",
     guide: [
       "O R inglês não vibra e não é o 'rr' de 'rato'. A língua curva para trás sem tocar em nada: 'red', 'right'.",
       "O L no fim da palavra não vira 'u': 'people' não é 'pípou', 'milk' não é 'miuk'. A ponta da língua toca atrás dos dentes.",
@@ -203,7 +202,7 @@ export const units: Unit[] = [
     id: "cafe",
     title: "No café",
     subtitle: "Pedir, pagar e agradecer",
-    color: "#10b981",
+    color: "#4ade9a",
     guide: [
       "Para pedir com educação use 'Can I have...' ou 'I'd like...'. Evite 'I want', que soa direto demais.",
       "'Could I get the check?' é a forma natural de pedir a conta nos EUA.",
@@ -232,7 +231,7 @@ export const units: Unit[] = [
     id: "travel",
     title: "Viagem",
     subtitle: "Aeroporto, hotel e direções",
-    color: "#ec4899",
+    color: "#ff8fb1",
     guide: [
       "Na imigração, respostas curtas e claras são o ideal: 'For vacation', 'Two weeks'.",
       "Para pedir ajuda: 'Excuse me, could you help me?' funciona em qualquer situação.",
@@ -262,7 +261,7 @@ export const units: Unit[] = [
     id: "linking",
     title: "Inglês falado de verdade",
     subtitle: "wanna, gonna, whaddaya",
-    color: "#64748b",
+    color: "#ff9f5a",
     guide: [
       "Nativos juntam palavras: 'want to' vira 'wanna', 'going to' vira 'gonna'.",
       "'What do you' vira 'whaddaya'; 'did you' vira 'didja'.",
@@ -288,14 +287,15 @@ export const units: Unit[] = [
   },
 ];
 
-const focuses: { focus: Lesson["focus"]; title: string; icon: string }[] = [
-  { focus: "escuta", title: "Treino de escuta", icon: "🎧" },
-  { focus: "fala", title: "Treino de fala", icon: "🎤" },
-  { focus: "conversa", title: "Conversa", icon: "💬" },
+// Each unit has the same three steps; the screen pairs each with an icon.
+const focuses: { focus: Lesson["focus"]; title: string }[] = [
+  { focus: "escuta", title: "Ouvir" },
+  { focus: "fala", title: "Falar" },
+  { focus: "conversa", title: "Conversar" },
 ];
 
 export const lessons: Lesson[] = units.flatMap((u) =>
-  focuses.map((f) => ({ id: `${u.id}-${f.focus}`, unitId: u.id, title: f.title, icon: f.icon, focus: f.focus })),
+  focuses.map((f) => ({ id: `${u.id}-${f.focus}`, unitId: u.id, title: f.title, focus: f.focus })),
 );
 
 function shuffle<T>(arr: T[]): T[] {

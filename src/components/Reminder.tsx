@@ -1,14 +1,24 @@
 import { useState } from "react";
+import { BellRinging } from "@phosphor-icons/react";
 import { REMINDER_HOUR } from "../data/push";
 import { disableReminders, enableReminders, pushState, type PushState } from "../lib/push";
 
 /** Home card to turn the daily streak reminder on or off, with install steps on iPhone. */
-export function ReminderCard({ lastDay, streak }: { lastDay: string | null; streak: number }) {
+export function ReminderCard({
+  lastDay,
+  streak,
+  hideWhenOn = false,
+}: {
+  lastDay: string | null;
+  streak: number;
+  /** On the home screen the card only invites; once on, it is managed from the account menu. */
+  hideWhenOn?: boolean;
+}) {
   const [state, setState] = useState<PushState>(pushState);
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  if (state === "unsupported") return null;
+  if (state === "unsupported" || (hideWhenOn && state === "on")) return null;
 
   const toggle = async () => {
     setBusy(true);
@@ -32,7 +42,9 @@ export function ReminderCard({ lastDay, streak }: { lastDay: string | null; stre
   return (
     <div className="card reminder-card">
       <div>
-        <div className="card-label">🔔 Lembrete diário</div>
+        <span className="eyebrow with-icon">
+          <BellRinging size={16} weight="fill" /> Lembrete diário
+        </span>
         <p className="hint small">{text[state]}</p>
         {failed && <p className="warn small">Não consegui ativar agora. Tente de novo em instantes.</p>}
       </div>
