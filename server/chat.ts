@@ -7,7 +7,8 @@ import type { Plugin } from "vite";
 import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 import { KIDS_TOPICS } from "../src/data/kids.js";
-import { allow } from "./db.js";
+import { allow, isPremium, userFromRequest } from "./db.js";
+import { FREE_CHATS_PER_DAY, PAYWALL_MARK } from "../src/data/plans.js";
 
 // Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
 // ANTHROPIC_MODEL overrides it, e.g. claude-opus-5-5 for richer conversation at a much higher cost.
@@ -156,16 +157,29 @@ export function clientIp(req: IncomingMessage): string {
   return first || req.socket.remoteAddress || "unknown";
 }
 
-// Daily per-person limits so a shared public link doesn't burn through the API credits (counted in Supabase).
-const SESSIONS_PER_DAY = Number(process.env.CHAT_SESSIONS_PER_DAY ?? 5);
-const REQUESTS_PER_DAY = Number(process.env.CHAT_REQUESTS_PER_DAY ?? 100);
+// Daily limits per account (counted in Supabase). Free: FREE_CHATS_PER_DAY conversations. Premium is
+// "unlimited", with a generous ceiling that only stops abuse of the API credits.
+const PREMIUM_SESSIONS_PER_DAY = Number(process.env.CHAT_SESSIONS_PER_DAY ?? 30);
+const REQUESTS_PER_DAY = Number(process.env.CHAT_REQUESTS_PER_DAY ?? 400);
 
-async function overLimit(ip: string, newSession: boolean): Promise<string | null> {
-  if (newSession && !(await allow(ip, "chat_session", SESSIONS_PER_DAY))) {
-    return `Você já fez ${SESSIONS_PER_DAY} conversas hoje. Volte amanhã para conversar de novo!`;
+/** Error to answer with, or null when the conversation may go on. Counts only what is allowed. */
+async function overLimit(userId: string, newSession: boolean): Promise<{ status: number; text: string } | null> {
+  const who = `user:${userId}`;
+  if (!(await allow(who, "chat_request", REQUESTS_PER_DAY))) {
+    return { status: 429, text: "Limite diário de mensagens atingido. Volte amanhã!" };
   }
-  if (!(await allow(ip, "chat_request", REQUESTS_PER_DAY))) return "Limite diário de mensagens atingido. Volte amanhã!";
-  return null;
+  if (!newSession) return null;
+  if (await isPremium(userId)) {
+    return (await allow(who, "chat_session", PREMIUM_SESSIONS_PER_DAY))
+      ? null
+      : { status: 429, text: `Você já fez ${PREMIUM_SESSIONS_PER_DAY} conversas hoje. Volte amanhã!` };
+  }
+  return (await allow(who, "free_chat", FREE_CHATS_PER_DAY))
+    ? null
+    : {
+        status: 402,
+        text: `${PAYWALL_MARK} No plano grátis é ${FREE_CHATS_PER_DAY} conversa por dia. Com o Premium você conversa à vontade.`,
+      };
 }
 
 /** Spoken replies must feel live; the SDK retries 429/5xx on its own within this budget. */
@@ -175,7 +189,7 @@ export function createClient(apiKey: string): Anthropic {
   return new Anthropic({ apiKey, timeout: REQUEST_TIMEOUT_MS, maxRetries: 2 });
 }
 
-export async function handleChat(client: Anthropic, rawBody: string, ip: string, res: ServerResponse) {
+export async function handleChat(client: Anthropic, rawBody: string, res: ServerResponse, headers: IncomingMessage["headers"]) {
   const body = parseBody(rawBody);
   if (!body) {
     res.statusCode = 400;
@@ -183,10 +197,18 @@ export async function handleChat(client: Anthropic, rawBody: string, ip: string,
     return;
   }
 
-  const limited = await overLimit(ip, body.mode === "chat" && body.messages.length === 0);
+  // The AI costs money per message: only signed-in accounts talk to it, and the free plan gets one
+  // conversation a day (counted per account, so a new browser doesn't reset it).
+  const user = await userFromRequest({ headers });
+  if (!user) {
+    res.statusCode = 401;
+    res.end("⚠️ Entre na sua conta para conversar com a IA.");
+    return;
+  }
+  const limited = await overLimit(user.id, body.mode === "chat" && body.messages.length === 0);
   if (limited) {
-    res.statusCode = 429;
-    res.end(`⚠️ ${limited}`);
+    res.statusCode = limited.status;
+    res.end(`⚠️ ${limited.text}`);
     return;
   }
 
@@ -259,7 +281,7 @@ export function chatApi(apiKey: string | undefined): Plugin {
     }
     client ??= createClient(apiKey);
     readBody(req)
-      .then((raw) => handleChat(client!, raw, clientIp(req), res))
+      .then((raw) => handleChat(client!, raw, res, req.headers))
       .catch((e) => {
         console.error("[chat]", e);
         res.statusCode = 500;

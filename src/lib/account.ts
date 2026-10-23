@@ -97,3 +97,72 @@ export function saveRemote(userId: string, progress: Progress) {
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flushSave());
 }
+
+/** Proves who is calling our own API (chat, billing): the server checks this token with Supabase. */
+export async function authHeaders(): Promise<Record<string, string>> {
+  const { data } = await supabase.auth.getSession();
+  return data.session ? { Authorization: `Bearer ${data.session.access_token}` } : {};
+}
+
+export interface Subscription {
+  status: string | null;
+  plan: "monthly" | "yearly" | null;
+  current_period_end: string | null;
+  trial_end: string | null;
+  cancel_at_period_end: boolean;
+  had_trial: boolean;
+}
+
+/** The account's subscription row (RLS: only its own), or null if it never subscribed. */
+export async function loadSubscription(userId: string): Promise<Subscription | null> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("status, plan, current_period_end, trial_end, cancel_at_period_end, had_trial")
+    .eq("user_id", userId)
+    .maybeSingle();
+  return data;
+}
+
+async function billing(action: "checkout" | "portal" | "sync", body?: unknown): Promise<Response> {
+  return fetch(`/api/billing/${action}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+    body: JSON.stringify(body ?? {}),
+  });
+}
+
+/** Sends the browser to Stripe Checkout; resolves only if that failed. */
+export async function startCheckout(plan: "monthly" | "yearly"): Promise<string> {
+  const res = await billing("checkout", { plan });
+  if (res.ok) {
+    const { url } = await res.json();
+    location.href = url;
+    return "";
+  }
+  return res.status === 503 ? "O pagamento ainda não está configurado." : "Não consegui abrir o pagamento. Tente de novo.";
+}
+
+/** Opens the Stripe Customer Portal (change card, switch plan, cancel). */
+export async function openPortal(): Promise<string> {
+  const res = await billing("portal");
+  if (res.ok) {
+    location.href = (await res.json()).url;
+    return "";
+  }
+  return "Não consegui abrir o portal de assinatura agora.";
+}
+
+/** Right after Checkout returns: asks the server to copy the new subscription from Stripe. */
+export async function syncBilling() {
+  await billing("sync").catch(() => {});
+}
+
+/** Google sign-in (Supabase OAuth): leaves for Google and comes back signed in. */
+export async function signInWithGoogle(): Promise<AuthResult> {
+  const { error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.origin } });
+  if (!error) return { ok: true };
+  return {
+    ok: false,
+    error: error.message.includes("not enabled") ? "O login com Google ainda não está ativado." : message(error),
+  };
+}

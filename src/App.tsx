@@ -11,7 +11,9 @@ import { Home } from "./components/Home";
 import { CenterScreen, IconButton, SoundButtons } from "./components/ui";
 import { reportStudy } from "./lib/push";
 import { AuthScreen, NewPasswordScreen } from "./components/Auth";
-import { loadRemote, saveRemote, signOut, supabase, type Session } from "./lib/account";
+import { loadRemote, loadSubscription, saveRemote, signOut, supabase, syncBilling, type Session, type Subscription } from "./lib/account";
+import { Pricing } from "./components/Pricing";
+import { FREE_UNITS, PREMIUM_STATUSES } from "./data/plans";
 import type { Topic } from "./data/topics";
 import {
   addXp,
@@ -48,6 +50,13 @@ export default function App() {
   const [syncedUser, setSyncedUser] = useState<string | null>(null);
   /** Opened the "new password" link from the e-mail. */
   const [recovery, setRecovery] = useState(false);
+  /** null: never subscribed. Loaded with the account. */
+  const [subscription, setSubscription] = useState<Subscription | null>(null);
+  /** Why the plans screen is open (shown at the top of it), or null when closed. */
+  const [paywall, setPaywall] = useState<string | null>(null);
+  /** Back from Stripe Checkout with a new subscription. */
+  const [welcomePremium, setWelcomePremium] = useState(false);
+  const premium = PREMIUM_STATUSES.includes(subscription?.status ?? "");
 
   const update = (p: Progress) => {
     setProgress(p);
@@ -73,7 +82,16 @@ export default function App() {
       return;
     }
     let cancelled = false;
-    const start = (p: Progress) => {
+    const start = async (p: Progress) => {
+      if (cancelled) return;
+      // Back from Stripe Checkout: copy the new subscription now rather than waiting for the webhook.
+      const params = new URLSearchParams(location.search);
+      if (params.get("checkout") === "success") {
+        await syncBilling();
+        setWelcomePremium(true);
+      }
+      if (params.has("checkout")) history.replaceState(null, "", location.pathname);
+      setSubscription(await loadSubscription(userId).catch(() => null));
       if (cancelled) return;
       onProgressSaved((next) => saveRemote(userId, next));
       saveProgress(p);
@@ -91,6 +109,7 @@ export default function App() {
   }, [userId]);
 
   const logout = async () => {
+    setSubscription(null);
     await signOut();
     onProgressSaved(null);
     setProgress(clearLocalProgress());
@@ -107,6 +126,8 @@ export default function App() {
   // Units before the placement start stay open for review; from there on, lessons unlock in order.
   const isUnlocked = (lessonIndex: number) =>
     lessonIndex <= startLesson || progress.completed[lessons[lessonIndex - 1].id] !== undefined;
+  /** The free plan covers the first FREE_UNITS units; the rest of the course needs Premium. */
+  const planLocked = (lessonIndex: number) => !premium && units.findIndex((u) => u.id === lessons[lessonIndex].unitId) >= FREE_UNITS;
   const currentIndex = lessons.findIndex((l, i) => i >= startLesson && isUnlocked(i) && progress.completed[l.id] === undefined);
   const deck = deckFor(progress.level);
   const dueCards = sessionCards(deck, progress.cards);
@@ -130,10 +151,38 @@ export default function App() {
   }
   if (!session) return <AuthScreen />;
 
+  if (paywall !== null) {
+    return <Pricing reason={paywall || undefined} hadTrial={subscription?.had_trial ?? false} onClose={() => setPaywall(null)} />;
+  }
+
+  if (welcomePremium) {
+    const trialEnd = subscription?.status === "trialing" && subscription.trial_end ? new Date(subscription.trial_end) : null;
+    return (
+      <CenterScreen mood="happy">
+        <span className="eyebrow">Premium ativo</span>
+        <h1>Agora é só falar.</h1>
+        <p className="hint">
+          {premium
+            ? trialEnd
+              ? `Seu teste grátis vai até ${trialEnd.toLocaleDateString("pt-BR")}. Você pode cancelar antes disso no menu da conta.`
+              : "Todas as unidades, conversas sem limite e o Modo Kids completo estão liberados."
+            : "Estamos confirmando o pagamento. Se o Premium não aparecer em alguns minutos, abra o app de novo."}
+        </p>
+        <div className="result-actions">
+          <button className="btn primary lg" onClick={() => setWelcomePremium(false)}>
+            Continuar
+          </button>
+        </div>
+      </CenterScreen>
+    );
+  }
+
   if (progress.mode === "kids") {
     return (
       <KidsApp
         account={{ email: session.user.email ?? "", onSignOut: logout }}
+        premium={premium}
+        onUpgrade={setPaywall}
         progress={progress}
         onProgress={(change) =>
           setProgress((p) => {
@@ -250,6 +299,7 @@ export default function App() {
   if (screen.name === "chat") {
     return (
       <Conversation
+        onUpgrade={() => setPaywall("Você já usou a conversa grátis de hoje.")}
         topic={screen.topic}
         level={progress.level ?? "iniciante"}
         style={progress.aiStyle}
@@ -400,6 +450,9 @@ export default function App() {
       email={session.user.email ?? ""}
       currentIndex={currentIndex}
       isUnlocked={isUnlocked}
+      planLocked={planLocked}
+      subscription={subscription}
+      onUpgrade={setPaywall}
       dueCards={level.flashcards ? dueCards.length : null}
       onLesson={(l) => setScreen({ name: "lesson", lesson: l })}
       onFlashcards={() => setScreen({ name: "flashcards", cards: dueCards })}

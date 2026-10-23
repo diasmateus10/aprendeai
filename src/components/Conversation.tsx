@@ -4,6 +4,8 @@ import { SESSION_SECONDS, TOPICS, type Topic } from "../data/topics";
 import { ACCENTS, CORRECTIONS, LENGTHS, PERSONAS, type AiStyle, type Option } from "../data/aiStyle";
 import { VoicePicker } from "./VoicePicker";
 import { imageFor } from "../data/vocab";
+import { authHeaders } from "../lib/account";
+import { PAYWALL_MARK } from "../data/plans";
 import type { Level } from "../lib/progress";
 import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
@@ -30,7 +32,7 @@ async function streamChat(
 ): Promise<string> {
   const res = await fetch("/api/chat", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", ...(await authHeaders()) },
     body: JSON.stringify(body),
     signal,
   });
@@ -153,6 +155,7 @@ export function Conversation({
   onFinish,
   seconds = SESSION_SECONDS,
   age,
+  onUpgrade,
 }: {
   topic: Topic;
   level: Level;
@@ -163,6 +166,8 @@ export function Conversation({
   seconds?: number;
   /** Kids mode age band, so the mascot talks at the child's level. */
   age?: string;
+  /** Opens the plans screen when the free daily conversation is used up. */
+  onUpgrade?(): void;
 }) {
   const [turns, setTurns] = useState<Turn[]>([]);
   const [streaming, setStreaming] = useState<string | null>(null);
@@ -429,11 +434,19 @@ export function Conversation({
         {phase === "listening" && interim && <div className="msg me interim">{interim}</div>}
         {error && (
           <div className="retry">
-            <p className="warn">{error}</p>
-            {!ended && (
-              <button className="btn secondary" onClick={() => send(lastSent.current)}>
-                Tentar de novo
-              </button>
+            <p className="warn">{error.replace(PAYWALL_MARK, "").replace(/\s+/g, " ")}</p>
+            {error.includes(PAYWALL_MARK) ? (
+              onUpgrade && (
+                <button className="btn primary" onClick={onUpgrade}>
+                  Ver o Premium
+                </button>
+              )
+            ) : (
+              !ended && (
+                <button className="btn secondary" onClick={() => send(lastSent.current)}>
+                  Tentar de novo
+                </button>
+              )
             )}
           </div>
         )}
@@ -468,7 +481,7 @@ export function Conversation({
         <div ref={bottom} />
       </main>
 
-      {!ended && (
+      {!ended && !error?.includes(PAYWALL_MARK) && (
         <footer className="convo-footer">
           {sttSupported && (
             <div className="orb-panel">

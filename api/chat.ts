@@ -2,7 +2,7 @@
 
 import type Anthropic from "@anthropic-ai/sdk";
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { clientIp, createClient, handleChat, NOT_CONFIGURED, readBody } from "../server/chat.js";
+import { createClient, handleChat, NOT_CONFIGURED, readBody } from "../server/chat.js";
 
 let client: Anthropic | null = null;
 
@@ -21,5 +21,5 @@ export default async function handler(req: IncomingMessage & { body?: unknown },
   // Vercel may have parsed the JSON body already; otherwise read the raw stream.
   const raw =
     req.body === undefined ? await readBody(req) : typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-  await handleChat(client, raw, clientIp(req), res);
+  await handleChat(client, raw, res, req.headers);
 }

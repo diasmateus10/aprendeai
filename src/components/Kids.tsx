@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, Gift, Microphone, MusicNotes, Star, Stop, Users, X } from "@phosphor-icons/react";
+import { ArrowLeft, Crown, Gift, Microphone, MusicNotes, Star, Stop, Users, X } from "@phosphor-icons/react";
 import { Mascot } from "./Brand";
+import { FREE_RHYMES } from "../data/plans";
 import { SoundButtons } from "./ui";
 import {
   ageBand,
@@ -96,6 +97,8 @@ export function KidsApp({
   onProgress,
   onAdultMode,
   account,
+  premium,
+  onUpgrade,
 }: {
   progress: Progress;
   /** Receives an updater so callbacks from finished activities never use a stale progress. */
@@ -103,6 +106,9 @@ export function KidsApp({
   onAdultMode(): void;
   /** Signed-in account, shown (with sign-out) in the parents' area. */
   account: { email: string; onSignOut(): void };
+  premium: boolean;
+  /** Opens the plans screen (for the adult), saying why. */
+  onUpgrade(reason: string): void;
 }) {
   const [screen, setScreen] = useState<Screen>({ name: "home" });
   const kids = progress.kids;
@@ -187,7 +193,15 @@ export function KidsApp({
       );
       break;
     case "rhymes":
-      page = <RhymeList best={kids.rhymes} onPick={(rhyme) => setScreen({ name: "rhyme", rhyme })} onExit={home} />;
+      page = (
+        <RhymeList
+          best={kids.rhymes}
+          premium={premium}
+          onPick={(rhyme) => setScreen({ name: "rhyme", rhyme })}
+          onLocked={() => onUpgrade("Todas as rimas e o Kiko sem limite fazem parte do Premium.")}
+          onExit={home}
+        />
+      );
       break;
     case "rhyme": {
       const rhyme = screen.rhyme;
@@ -504,7 +518,19 @@ function ListenTap({
   );
 }
 
-function RhymeList({ best, onPick, onExit }: { best: Record<string, number>; onPick(r: Rhyme): void; onExit(): void }) {
+function RhymeList({
+  best,
+  premium,
+  onPick,
+  onLocked,
+  onExit,
+}: {
+  best: Record<string, number>;
+  premium: boolean;
+  onPick(r: Rhyme): void;
+  onLocked(): void;
+  onExit(): void;
+}) {
   return (
     <div className="page">
       <header className="page-top">
@@ -515,16 +541,28 @@ function RhymeList({ best, onPick, onExit }: { best: Record<string, number>; onP
       </header>
       <p className="hint">Ouça cada frase e repita em voz alta. Cada frase certa vale uma estrela!</p>
       <div className="kids-list">
-        {RHYMES.map((r) => (
-          <button key={r.id} className="kids-row" onClick={() => onPick(r)}>
-            <Pic emoji={r.emoji} size={52} />
-            <div>
-              <strong>{r.title}</strong>
-              <span>{r.lines.length} frases</span>
-            </div>
-            {best[r.id] ? <Stars n={best[r.id]} /> : <span className="kids-new">Nova</span>}
-          </button>
-        ))}
+        {RHYMES.map((r, i) => {
+          // The free plan has the first FREE_RHYMES rhymes; the rest show a lock for the adult.
+          const locked = !premium && i >= FREE_RHYMES;
+          return (
+            <button key={r.id} className={`kids-row ${locked ? "locked" : ""}`} onClick={() => (locked ? onLocked() : onPick(r))}>
+              <Pic emoji={r.emoji} size={52} />
+              <div>
+                <strong>{r.title}</strong>
+                <span>{r.lines.length} frases</span>
+              </div>
+              {locked ? (
+                <span className="premium-tag">
+                  <Crown size={14} weight="fill" /> Premium
+                </span>
+              ) : best[r.id] ? (
+                <Stars n={best[r.id]} />
+              ) : (
+                <span className="kids-new">Nova</span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

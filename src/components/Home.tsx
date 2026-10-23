@@ -17,7 +17,10 @@ import {
   SignOut,
   X,
   PencilSimple,
+  Crown,
 } from "@phosphor-icons/react";
+import { openPortal, type Subscription } from "../lib/account";
+import { PREMIUM_STATUSES } from "../data/plans";
 import { lessons, units, type Lesson, type Unit } from "../data/course";
 import { levelInfo } from "../data/levels";
 import { dayKey, displayStreak, GOALS, todayXp, type Progress } from "../lib/progress";
@@ -34,6 +37,11 @@ export interface HomeProps {
   /** Index in `lessons` of the next lesson to do, or -1 when the course is done. */
   currentIndex: number;
   isUnlocked(lessonIndex: number): boolean;
+  /** Reachable in the course but outside the free plan. */
+  planLocked(lessonIndex: number): boolean;
+  subscription: Subscription | null;
+  /** Opens the plans screen, saying why. */
+  onUpgrade(reason: string): void;
   /** null when the learner's level has no flashcards. */
   dueCards: number | null;
   onLesson(l: Lesson): void;
@@ -79,7 +87,7 @@ export function Home(props: HomeProps) {
   );
 }
 
-function ContinueCard({ progress, currentIndex, onLesson }: HomeProps) {
+function ContinueCard({ progress, currentIndex, onLesson, planLocked, onUpgrade }: HomeProps) {
   if (currentIndex < 0) {
     return (
       <section className="card continue-card done">
@@ -115,9 +123,15 @@ function ContinueCard({ progress, currentIndex, onLesson }: HomeProps) {
           <span key={l.id} className={progress.completed[l.id] !== undefined ? "on" : l.id === lesson.id ? "now" : ""} />
         ))}
       </div>
-      <button className="btn primary block lg" onClick={() => onLesson(lesson)}>
-        Começar lição
-      </button>
+      {planLocked(currentIndex) ? (
+        <button className="btn primary block lg" onClick={() => onUpgrade(`A Unidade ${unitIndex + 1} faz parte do Premium.`)}>
+          <Crown size={20} weight="fill" /> Liberar no Premium
+        </button>
+      ) : (
+        <button className="btn primary block lg" onClick={() => onLesson(lesson)}>
+          Começar lição
+        </button>
+      )}
     </section>
   );
 }
@@ -236,7 +250,7 @@ function Activities({ currentIndex, dueCards, onChat, onFlashcards, onGuide }: H
   );
 }
 
-function Course({ progress, currentIndex, isUnlocked, onLesson, onGuide }: HomeProps) {
+function Course({ progress, currentIndex, isUnlocked, planLocked, onLesson, onGuide, onUpgrade }: HomeProps) {
   return (
     <section className="course" aria-label="Seu curso">
       <h2 className="section-title">Seu curso</h2>
@@ -276,6 +290,24 @@ function Course({ progress, currentIndex, isUnlocked, onLesson, onGuide }: HomeP
                 const unlocked = isUnlocked(gi);
                 const stars = progress.completed[l.id];
                 const now = gi === currentIndex;
+                if (unlocked && planLocked(gi)) {
+                  return (
+                    <li key={l.id}>
+                      <button className="lesson-row premium" onClick={() => onUpgrade(`A Unidade ${ui + 1} faz parte do Premium.`)}>
+                        <span className="lesson-icon">
+                          <FocusIcon focus={l.focus} size={20} />
+                        </span>
+                        <span className="lesson-text">
+                          <strong>{l.title}</strong>
+                          <span>Disponível no Premium</span>
+                        </span>
+                        <span className="premium-tag">
+                          <Crown size={14} weight="fill" /> Premium
+                        </span>
+                      </button>
+                    </li>
+                  );
+                }
                 return (
                   <li key={l.id}>
                     <button className={`lesson-row ${now ? "now" : ""} ${stars ? "done" : ""}`} disabled={!unlocked} onClick={() => onLesson(l)}>
@@ -305,8 +337,11 @@ function Course({ progress, currentIndex, isUnlocked, onLesson, onGuide }: HomeP
   );
 }
 
-function AccountMenu({ progress, email, onPlacement, onKids, onSignOut, onClose }: HomeProps & { onClose(): void }) {
+function AccountMenu({ progress, email, subscription, onPlacement, onKids, onSignOut, onUpgrade, onClose }: HomeProps & { onClose(): void }) {
   const level = levelInfo(progress.level);
+  const [portalError, setPortalError] = useState<string | null>(null);
+  const premium = PREMIUM_STATUSES.includes(subscription?.status ?? "");
+  const until = subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString("pt-BR") : null;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
       <div className="sheet" role="dialog" aria-modal="true" aria-label="Sua conta" onClick={(e) => e.stopPropagation()}>
@@ -320,6 +355,30 @@ function AccountMenu({ progress, email, onPlacement, onKids, onSignOut, onClose 
             <X size={20} weight="bold" />
           </IconButton>
         </header>
+
+        {premium ? (
+          <button
+            className="menu-item"
+            onClick={async () => setPortalError((await openPortal()) || null)}
+          >
+            <Crown size={22} weight="fill" className="gold" />
+            <span>
+              <strong>Premium {subscription?.status === "trialing" ? "(teste grátis)" : ""}</strong>
+              <span className="hint">
+                {subscription?.cancel_at_period_end ? `Termina em ${until}` : `Renova em ${until}`} · Gerenciar ou cancelar
+              </span>
+            </span>
+          </button>
+        ) : (
+          <button className="menu-item premium-cta" onClick={() => onUpgrade("")}>
+            <Crown size={22} weight="fill" className="gold" />
+            <span>
+              <strong>Seja Premium</strong>
+              <span className="hint">Curso completo e conversa sem limite</span>
+            </span>
+          </button>
+        )}
+        {portalError && <p className="warn small">{portalError}</p>}
 
         <ReminderCard lastDay={progress.lastDay} streak={progress.streak} />
 

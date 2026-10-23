@@ -3,6 +3,7 @@
 
 import { createHmac } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { PREMIUM_STATUSES } from "../src/data/plans.js";
 
 const URL = process.env.SUPABASE_URL || "https://akctjmradduksgxnpian.supabase.co";
 
@@ -14,6 +15,24 @@ export function db(): SupabaseClient | null {
   if (!key) return null;
   client ??= createClient(URL, key, { auth: { persistSession: false, autoRefreshToken: false } });
   return client;
+}
+
+/** The signed-in account behind a request ("Authorization: Bearer <Supabase access token>"), or null. */
+export async function userFromRequest(req: { headers: Record<string, string | string[] | undefined> }) {
+  const supabase = db();
+  const header = req.headers.authorization;
+  const token = typeof header === "string" && header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!supabase || !token) return null;
+  const { data, error } = await supabase.auth.getUser(token);
+  return error ? null : data.user;
+}
+
+/** True while the account's subscription is trialing or paid (see PREMIUM_STATUSES). */
+export async function isPremium(userId: string): Promise<boolean> {
+  const supabase = db();
+  if (!supabase) return false;
+  const { data } = await supabase.from("subscriptions").select("status").eq("user_id", userId).maybeSingle();
+  return PREMIUM_STATUSES.includes(data?.status ?? "");
 }
 
 // In-memory fallback: good enough for one dev server, best effort on serverless.
