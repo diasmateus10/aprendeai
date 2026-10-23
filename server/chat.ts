@@ -1,20 +1,21 @@
-// Dev/preview server middleware that proxies the conversation practice to Google Gemini.
+// Dev/preview server middleware that proxies the conversation practice to Claude (Anthropic API).
 // The API key stays on the server (read from app/.env or the environment), never in the browser.
 
-import { ApiError, GoogleGenAI, ThinkingLevel, type Content } from "@google/genai";
+import Anthropic from "@anthropic-ai/sdk";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin } from "vite";
 import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 
-// "-latest" aliases follow Google's current models on the free tier. Flash-Lite answers in about half a second,
-// which suits short spoken replies; the bigger Flash is often overloaded on the free tier, so it is the backup.
-const MODEL = process.env.GEMINI_MODEL || "gemini-flash-lite-latest";
+// ANTHROPIC_MODEL overrides it, e.g. claude-haiku-5-5 for faster and much cheaper replies.
+const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+// Short spoken replies need little reasoning, and less effort means the first word comes sooner.
+const EFFORT = "low";
 const MAX_TURNS = 60;
 const MAX_CHARS = 1500;
 
 export const NOT_CONFIGURED =
-  "A conversa com IA não está configurada. Defina GEMINI_API_KEY (em app/.env localmente, ou nas Environment Variables da Vercel).";
+  "A conversa com IA não está configurada. Defina ANTHROPIC_API_KEY (em app/.env localmente, ou nas Environment Variables da Vercel).";
 
 const LEVEL_STYLE: Record<string, string> = {
   iniciante: "very simple words, present tense, sentences of at most 8 words",
@@ -118,67 +119,14 @@ function overLimit(ip: string, newSession: boolean): string | null {
   return null;
 }
 
-// The free tier often answers 503 ("high demand") or 429 for a few seconds; the other model is usually free then.
-const FALLBACK_MODEL = process.env.GEMINI_FALLBACK_MODEL || "gemini-flash-latest";
-const RETRYABLE = new Set([429, 500, 503]);
-/** Spoken replies must feel live: an attempt that hasn't produced its first words by then is abandoned. */
-const FIRST_CHUNK_MS = 9_000;
+/** Spoken replies must feel live; the SDK retries 429/5xx on its own within this budget. */
+const REQUEST_TIMEOUT_MS = 30_000;
 
-// Short spoken replies don't need reasoning, and thinking adds many seconds before the first word.
-// Not every model accepts this setting, so models that reject it are remembered and called without it.
-const THINKING = { thinkingLevel: ThinkingLevel.MINIMAL };
-const noThinking = new Set<string>();
-
-class FirstChunkTimeout extends Error {}
-
-/**
- * Opens the stream and waits for its first chunk, retrying on the main model and then on the
- * fallback model when Gemini is overloaded or too slow. Returns the chunks as one async iterable.
- */
-async function startStream(ai: GoogleGenAI, contents: Content[], systemInstruction: string) {
-  const attempts = [MODEL, FALLBACK_MODEL, MODEL];
-  for (let i = 0; ; i++) {
-    const abort = new AbortController();
-    const timer = setTimeout(() => abort.abort(), FIRST_CHUNK_MS);
-    const started = Date.now();
-    try {
-      const stream = await ai.models.generateContentStream({
-        model: attempts[i],
-        contents,
-        config: {
-          systemInstruction,
-          maxOutputTokens: 2048,
-          abortSignal: abort.signal,
-          thinkingConfig: noThinking.has(attempts[i]) ? undefined : THINKING,
-        },
-      });
-      const iterator = stream[Symbol.asyncIterator]();
-      const first = await iterator.next();
-      if (abort.signal.aborted) throw new FirstChunkTimeout();
-      clearTimeout(timer);
-      console.log(`[chat] ${attempts[i]} first chunk after ${Date.now() - started} ms`);
-      return (async function* () {
-        if (!first.done) yield first.value;
-        for (let r = await iterator.next(); !r.done; r = await iterator.next()) yield r.value;
-      })();
-    } catch (error) {
-      clearTimeout(timer);
-      if (error instanceof ApiError && error.status === 400 && !noThinking.has(attempts[i])) {
-        console.warn(`[chat] ${attempts[i]} rejected the request; retrying without the thinking config`);
-        noThinking.add(attempts[i]);
-        i--;
-        continue;
-      }
-      const timedOut = abort.signal.aborted || error instanceof FirstChunkTimeout;
-      const retryable = timedOut || (error instanceof ApiError && RETRYABLE.has(error.status));
-      if (i + 1 >= attempts.length || !retryable) throw timedOut ? new ApiError({ message: "timeout", status: 503 }) : error;
-      console.warn(`[chat] ${attempts[i]} ${timedOut ? "timed out" : `returned ${(error as ApiError).status}`}; retrying with ${attempts[i + 1]}`);
-      if (!timedOut) await new Promise((r) => setTimeout(r, 500));
-    }
-  }
+export function createClient(apiKey: string): Anthropic {
+  return new Anthropic({ apiKey, timeout: REQUEST_TIMEOUT_MS, maxRetries: 2 });
 }
 
-export async function handleChat(ai: GoogleGenAI, rawBody: string, ip: string, res: ServerResponse) {
+export async function handleChat(client: Anthropic, rawBody: string, ip: string, res: ServerResponse) {
   const body = parseBody(rawBody);
   if (!body) {
     res.statusCode = 400;
@@ -193,52 +141,65 @@ export async function handleChat(ai: GoogleGenAI, rawBody: string, ip: string, r
     return;
   }
 
-  let contents: Content[];
-  let systemInstruction: string;
+  let messages: Anthropic.Beta.BetaMessageParam[];
+  let system: string;
   if (body.mode === "chat") {
-    systemInstruction = systemPrompt(body.topic, body.level, body.style);
+    system = systemPrompt(body.topic, body.level, body.style);
     // The opening turn has no learner message yet; a neutral cue starts the scenario.
-    contents = body.messages.length
-      ? body.messages.map((m) => ({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] }))
-      : [{ role: "user", parts: [{ text: "(The learner is ready. Start the conversation.)" }] }];
+    messages = [{ role: "user", content: "(The learner is ready. Start the conversation.)" }, ...body.messages];
   } else {
-    systemInstruction = FEEDBACK_PROMPT;
+    system = FEEDBACK_PROMPT;
     const transcript = body.messages
       .map((m) => `${m.role === "user" ? "Learner" : "Partner"}: ${m.content}`)
       .join("\n");
-    contents = [{ role: "user", parts: [{ text: transcript || "(The learner did not say anything.)" }] }];
+    messages = [{ role: "user", content: transcript || "(The learner did not say anything.)" }];
   }
 
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
+  const started = Date.now();
   try {
-    const stream = await startStream(ai, contents, systemInstruction);
+    // Haiku has no server-side fallback; the other models retry a safety decline on Anthropic's recommended model.
+    const fallback = !MODEL.startsWith("claude-haiku");
+    const stream = client.beta.messages.stream({
+      model: MODEL,
+      max_tokens: 2048,
+      system,
+      messages,
+      output_config: { effort: EFFORT },
+      ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+    });
     let wrote = false;
-    for await (const chunk of stream) {
-      const text = chunk.text;
-      if (text) {
-        res.write(text);
+    for await (const event of stream) {
+      if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+        if (!wrote) console.log(`[chat] ${MODEL} first words after ${Date.now() - started} ms`);
+        res.write(event.delta.text);
         wrote = true;
       }
     }
-    // Gemini returns no text when a safety filter blocks the reply.
-    if (!wrote) res.write("(Não consegui responder a isso. Vamos mudar de assunto?)");
+    const final = await stream.finalMessage();
+    if (final.stop_reason === "refusal" || !wrote) res.write("(Não consegui responder a isso. Vamos mudar de assunto?)");
     res.end();
   } catch (error) {
     let message = "Erro ao falar com a IA. Tente de novo.";
-    if (error instanceof ApiError) {
-      if (error.status === 429) message = "A IA está muito ocupada agora (limite do plano gratuito). Espere um minuto e tente de novo.";
-      else if (error.status === 400 && /api key/i.test(error.message)) message = "Chave da API inválida. Confira GEMINI_API_KEY.";
-      else if (error.status === 401 || error.status === 403) message = "Chave da API inválida ou sem permissão. Confira GEMINI_API_KEY.";
-      console.error(`[chat] Gemini API error ${error.status}:`, error.message);
-    } else console.error("[chat]", error);
+    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
+      message = "Chave da API inválida ou sem permissão. Confira ANTHROPIC_API_KEY.";
+    } else if (error instanceof Anthropic.RateLimitError) {
+      message = "A IA está muito ocupada agora. Espere um minuto e tente de novo.";
+    } else if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
+      message = "A conta da Anthropic está sem créditos. Adicione créditos no Console.";
+    } else if (error instanceof Anthropic.APIConnectionTimeoutError) {
+      message = "A IA demorou demais para responder. Tente de novo.";
+    }
+    if (error instanceof Anthropic.APIError) console.error(`[chat] Anthropic API error ${error.status}:`, error.message);
+    else console.error("[chat]", error);
     if (!res.headersSent) res.statusCode = 502;
     res.end(`\n⚠️ ${message}`);
   }
 }
 
 export function chatApi(apiKey: string | undefined): Plugin {
-  let ai: GoogleGenAI | null = null;
+  let client: Anthropic | null = null;
   const middleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url !== "/api/chat" || req.method !== "POST") return next();
     if (!apiKey) {
@@ -246,9 +207,9 @@ export function chatApi(apiKey: string | undefined): Plugin {
       res.end(`⚠️ ${NOT_CONFIGURED}`);
       return;
     }
-    ai ??= new GoogleGenAI({ apiKey });
+    client ??= createClient(apiKey);
     readBody(req)
-      .then((raw) => handleChat(ai!, raw, clientIp(req), res))
+      .then((raw) => handleChat(client!, raw, clientIp(req), res))
       .catch((e) => {
         console.error("[chat]", e);
         res.statusCode = 500;

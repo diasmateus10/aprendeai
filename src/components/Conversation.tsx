@@ -160,8 +160,9 @@ export function Conversation({
   const [streaming, setStreaming] = useState<string | null>(null);
   const [left, setLeft] = useState(SESSION_SECONDS);
   const [phase, setPhaseState] = useState<Phase>("thinking");
-  // Hands-free: after the partner speaks, the mic reopens by itself, like a phone call.
-  const [live, setLiveState] = useState(sttSupported);
+  // Hands-free once started: the first tap opens the mic (browsers want a tap for it), and from then on
+  // it reopens by itself after the partner speaks, like a phone call.
+  const [live, setLiveState] = useState(false);
   const [interim, setInterim] = useState("");
   const [draft, setDraft] = useState("");
   const [typing, setTyping] = useState(!sttSupported);
@@ -194,7 +195,7 @@ export function Conversation({
   /** Bumped whenever a line is spoken or interrupted, so a stale say() doesn't reopen the mic. */
   const sayId = useRef(0);
 
-  // Last history sent, so a failed reply (e.g. Gemini's free tier is busy) can be retried as-is.
+  // Last history sent, so a failed reply (e.g. the API is busy) can be retried as-is.
   const lastSent = useRef<Turn[]>([]);
 
   /** Closes the mic without sending what it heard; its pending callbacks are ignored. */
@@ -373,7 +374,7 @@ export function Conversation({
     listening: "Ouvindo… pode falar",
     thinking: "Pensando…",
     speaking: "Falando… toque para interromper",
-    idle: live ? "Ouvindo…" : "Pausado · toque para falar",
+    idle: turns.some((t) => t.role === "user") ? "Toque na bolinha para continuar" : "Toque na bolinha e fale",
   }[phase];
 
   return (

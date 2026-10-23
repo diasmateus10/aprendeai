@@ -44,16 +44,16 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 |---|---|
 | Interface | React 18, TypeScript, Vite |
 | Voz | Web Speech API (síntese e reconhecimento de voz no navegador) |
-| IA | Google Gemini (`@google/genai`), com streaming |
+| IA | Claude, da Anthropic (`@anthropic-ai/sdk`), com streaming |
 | Backend | Função serverless na Vercel (`api/chat.ts`) |
 | Hospedagem | Vercel |
 | Dados do aluno | `localStorage` (progresso fica no próprio aparelho) |
 
 ### Detalhes técnicos
 
-- **A chave da IA nunca vai para o navegador.** O app chama `/api/chat`, e só o servidor fala com o Gemini. O mesmo código roda como middleware do Vite no desenvolvimento e como função serverless na Vercel ([`server/chat.ts`](server/chat.ts)).
-- **Respostas em ~1 segundo:** usa o modelo Flash-Lite com o raciocínio no mínimo. Se o plano gratuito estiver ocupado (503/429) ou lento, o servidor tenta de novo automaticamente com outro modelo.
-- **Limite de uso por pessoa:** 5 conversas por dia, para um link público não esgotar a cota gratuita.
+- **A chave da IA nunca vai para o navegador.** O app chama `/api/chat`, e só o servidor fala com a API da Anthropic. O mesmo código roda como middleware do Vite no desenvolvimento e como função serverless na Vercel ([`server/chat.ts`](server/chat.ts)).
+- **Respostas rápidas:** esforço de raciocínio baixo e streaming. O modelo vem de `ANTHROPIC_MODEL` (padrão `claude-opus-5-5`; `claude-haiku-5-5` é mais rápido e mais barato).
+- **Limite de uso por pessoa:** 5 conversas por dia, para um link público não gastar os créditos da API.
 - **Prompt montado a partir das escolhas do aluno**, validadas no servidor contra uma lista fixa de opções ([`src/data/aiStyle.ts`](src/data/aiStyle.ts)).
 - **Correspondência de respostas faladas** tolerante a plural, gerúndio e frases completas, sem aceitar palavras só parecidas.
 - **Repetição espaçada** (sistema Leitner) nos flashcards: 1, 3, 7 e 14 dias.
@@ -64,7 +64,7 @@ Pré-requisito: Node.js 20 ou mais novo.
 
 ```bash
 npm install
-cp .env.example .env   # coloque sua GEMINI_API_KEY (grátis em https://aistudio.google.com/apikey)
+cp .env.example .env   # coloque sua ANTHROPIC_API_KEY (crie em https://platform.claude.com/settings/keys)
 npm run dev            # http://localhost:5173
 ```
 

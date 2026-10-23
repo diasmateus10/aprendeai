@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
   // `npm run mobile`: phones on the same Wi-Fi need HTTPS, or the browser blocks the microphone.
   const mobile = mode === "mobile";
   return {
-    plugins: [react(), chatApi(env.GEMINI_API_KEY || process.env.GEMINI_API_KEY), ...(mobile ? [basicSsl()] : [])],
+    plugins: [react(), chatApi(env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY), ...(mobile ? [basicSsl()] : [])],
     server: { port: mobile ? 5174 : 5173, host: mobile },
   };
 });
