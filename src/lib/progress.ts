@@ -47,6 +47,8 @@ export interface Progress {
   aiStyle: AiStyle;
   /** English voice picked by name; null means the most natural one available. */
   voiceName: string | null;
+  /** Themes of the personalized path (data/themes.ts); null until picked. */
+  themes: string[] | null;
 }
 
 export const GOALS = [
@@ -74,6 +76,7 @@ const empty: Progress = {
   speakingSeconds: 0,
   aiStyle: DEFAULT_STYLE,
   voiceName: null,
+  themes: null,
 };
 
 /** Fills in fields added after the progress was saved (locally or in the account). */

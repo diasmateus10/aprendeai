@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { playComplete, playCorrect, playWrong } from "../lib/sounds";
 import { Heart, SpeakerHigh, X } from "@phosphor-icons/react";
 import { buildLesson, type Lesson as LessonT } from "../data/course";
+import { allUnits } from "../data/themes";
 import { ExerciseView, type Outcome } from "./Exercises";
 import { speak, stopSpeaking } from "../lib/speech";
 
@@ -15,7 +16,7 @@ export interface LessonResult {
 }
 
 export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): void; onDone(r: LessonResult): void }) {
-  const initial = useMemo(() => buildLesson(lesson), [lesson]);
+  const initial = useMemo(() => buildLesson(lesson, allUnits), [lesson]);
   const [queue, setQueue] = useState(initial);
   const [index, setIndex] = useState(0);
   const [hearts, setHearts] = useState(HEARTS);

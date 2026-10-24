@@ -7,16 +7,16 @@ export interface LevelInfo {
   id: Level;
   label: string;
   description: string;
-  /** Index into `units` where the learner is placed; earlier units stay open for review. */
-  startUnit: number;
+  /** Unit of the path where the learner is placed (a pronunciation unit); earlier units stay open for review. */
+  startUnit: string;
   flashcards: boolean;
 }
 
 export const levels: LevelInfo[] = [
-  { id: "iniciante", label: "Iniciante", description: "Começando do zero: sons básicos e cumprimentos.", startUnit: 0, flashcards: true },
-  { id: "basico", label: "Básico", description: "Você entende frases simples. Hora de afinar vogais e finais de palavra.", startUnit: 2, flashcards: true },
-  { id: "intermediario", label: "Intermediário", description: "Você se vira bem. Foco em R/L e situações reais.", startUnit: 4, flashcards: true },
-  { id: "avancado", label: "Avançado", description: "Você entende bem. Foco em conversa e inglês falado rápido.", startUnit: 6, flashcards: false },
+  { id: "iniciante", label: "Iniciante", description: "Começando do zero: sons básicos e cumprimentos.", startUnit: "hello", flashcards: true },
+  { id: "basico", label: "Básico", description: "Você entende frases simples. Hora de afinar vogais e finais de palavra.", startUnit: "vowels", flashcards: true },
+  { id: "intermediario", label: "Intermediário", description: "Você se vira bem. Foco em R/L e situações reais.", startUnit: "r-l", flashcards: true },
+  { id: "avancado", label: "Avançado", description: "Você entende bem. Foco em conversa e inglês falado rápido.", startUnit: "linking", flashcards: false },
 ];
 
 export function levelInfo(level: Level | null): LevelInfo {

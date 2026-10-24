@@ -1,0 +1,2721 @@
+{
+  "viagem": [
+    {
+      "id": "viagem-2",
+      "title": "Passeando pela cidade",
+      "subtitle": "Pontos turísticos, ingressos, fotos e transporte",
+      "guide": [
+        "Para pedir que alguém tire uma foto sua, use 'Could you take a picture of us?'. É educado e muito comum entre turistas. Agradeça com 'Thanks so much!'.",
+        "Nos EUA, 'downtown' é o centro da cidade. Para pedir direções, comece com 'Excuse me, how do I get to...?'.",
+        "Cuidado com o 'i' extra antes do S: 'student' é 'stú-dent', não 'istúdent'. O mesmo vale para 'station' e 'street'."
+      ],
+      "phrases": [
+        {
+          "en": "Could you take a picture of us?",
+          "pt": "Você poderia tirar uma foto da gente?",
+          "tip": "'Could you' vira 'cúdju' e 'picture' soa 'píktcher'"
+        },
+        {
+          "en": "Two tickets for the museum, please.",
+          "pt": "Dois ingressos para o museu, por favor.",
+          "tip": "'tickets' soa 'tí-kits', com o S final bem claro"
+        },
+        {
+          "en": "What time does it open?",
+          "pt": "Que horas abre?",
+          "tip": "'does it' se junta: 'dâ-zit'"
+        },
+        {
+          "en": "Is there a student discount?",
+          "pt": "Tem desconto para estudante?",
+          "tip": "'student' começa direto no S: 'stú-dent', sem 'i' antes"
+        },
+        {
+          "en": "Which bus goes downtown?",
+          "pt": "Qual ônibus vai para o centro?"
+        },
+        {
+          "en": "How do I get to the station?",
+          "pt": "Como eu chego à estação?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "bus",
+          "b": "boss",
+          "ptA": "ônibus",
+          "ptB": "chefe"
+        },
+        {
+          "a": "walk",
+          "b": "work",
+          "ptA": "caminhar",
+          "ptB": "trabalhar"
+        },
+        {
+          "a": "three",
+          "b": "tree",
+          "ptA": "três",
+          "ptB": "árvore"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "How many tickets do you need?",
+          "qPt": "Quantos ingressos você precisa?",
+          "answers": [
+            "Two please",
+            "Two tickets please",
+            "Just one please",
+            "One adult and one student"
+          ],
+          "answerPt": "Dois, por favor."
+        },
+        {
+          "q": "Would you like me to take a photo?",
+          "qPt": "Quer que eu tire uma foto?",
+          "answers": [
+            "Yes please",
+            "Yes that would be great",
+            "Sure thank you",
+            "No thanks"
+          ],
+          "answerPt": "Sim, por favor."
+        },
+        {
+          "q": "Where are you trying to go?",
+          "qPt": "Para onde você está tentando ir?",
+          "answers": [
+            "To the museum",
+            "I'm going to the museum",
+            "Downtown",
+            "To the train station"
+          ],
+          "answerPt": "Para o museu."
+        }
+      ],
+      "color": "#ffc24b"
+    }
+  ],
+  "comida": [
+    {
+      "id": "comida-2",
+      "title": "No restaurante",
+      "subtitle": "Reservar, pedir, avisar alergias, elogiar e reclamar",
+      "guide": [
+        "Para reservar diga 'I'd like to book a table'. Ao chegar, 'We have a reservation under Silva' significa que a reserva está no nome Silva. Use 'under', não 'in the name'.",
+        "Para reclamar com educação, suavize com 'Sorry' ou 'Excuse me' e com 'a bit' (um pouco): 'This is a bit cold' soa bem mais gentil que 'This is cold'.",
+        "Cuidado com 'allergic': a sílaba forte é a do meio, 'â-LÂR-djik'. Muitos brasileiros falam 'alérgico' com a força no lugar errado e o garçom não entende."
+      ],
+      "phrases": [
+        {
+          "en": "I'd like to book a table.",
+          "pt": "Eu gostaria de reservar uma mesa.",
+          "tip": "'book a' se junta: 'bú-kâ'"
+        },
+        {
+          "en": "A table for two, please.",
+          "pt": "Uma mesa para dois, por favor.",
+          "tip": "'table' termina com L escuro, quase 'têibôu'"
+        },
+        {
+          "en": "Could we see the menu?",
+          "pt": "Podemos ver o cardápio?",
+          "tip": "'Could we' vira 'cúd-uí', e 'menu' soa 'mé-niu'"
+        },
+        {
+          "en": "I'm allergic to peanuts.",
+          "pt": "Eu sou alérgico a amendoim.",
+          "tip": "'allergic' tem força no meio: 'â-LÂR-djik'"
+        },
+        {
+          "en": "This is delicious, thank you!",
+          "pt": "Está delicioso, obrigado!"
+        },
+        {
+          "en": "Excuse me, my food is cold.",
+          "pt": "Com licença, minha comida está fria."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "full",
+          "b": "fool",
+          "ptA": "satisfeito, cheio",
+          "ptB": "bobo, tolo"
+        },
+        {
+          "a": "eat",
+          "b": "heat",
+          "ptA": "comer",
+          "ptB": "calor, aquecer"
+        },
+        {
+          "a": "cook",
+          "b": "cooked",
+          "ptA": "cozinhar",
+          "ptB": "cozido, cozinhado"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Do you have a reservation?",
+          "qPt": "Vocês têm reserva?",
+          "answers": [
+            "Yes under Silva",
+            "Yes we do",
+            "No we don't",
+            "Yes for two"
+          ],
+          "answerPt": "Sim, no nome de Silva."
+        },
+        {
+          "q": "Do you have any allergies?",
+          "qPt": "Você tem alguma alergia?",
+          "answers": [
+            "I'm allergic to peanuts",
+            "Yes peanuts",
+            "No I don't",
+            "No allergies"
+          ],
+          "answerPt": "Eu sou alérgico a amendoim."
+        },
+        {
+          "q": "How is everything?",
+          "qPt": "Está tudo bem com a comida?",
+          "answers": [
+            "It's delicious thank you",
+            "Everything's great",
+            "It's delicious",
+            "It's a bit cold"
+          ],
+          "answerPt": "Está delicioso, obrigado."
+        }
+      ],
+      "color": "#3dd6c6"
+    }
+  ],
+  "esportes": [
+    {
+      "id": "esportes-1",
+      "title": "Futebol",
+      "subtitle": "Times, placar e jogo no bar",
+      "guide": [
+        "Nos EUA, 'football' é o futebol americano. Para o nosso futebol, use 'soccer'. No Reino Unido, 'football' é o futebol mesmo.",
+        "Para 'torcer por um time' diga 'root for' (EUA) ou 'support' (Reino Unido). 'Who are you rooting for?' é a pergunta clássica antes do jogo.",
+        "Placar se fala com 'to' ou 'nothing': '2-1' é 'two to one' e '2-0' é 'two nothing'. Empate é 'tied' ou 'a tie'."
+      ],
+      "phrases": [
+        {
+          "en": "Who are you rooting for?",
+          "pt": "Pra quem você está torcendo?",
+          "tip": "O 't' de 'rooting' soa como um 'r' leve: 'rú-rin-fór'"
+        },
+        {
+          "en": "What's the score?",
+          "pt": "Qual é o placar?",
+          "tip": "'What's the' vira 'uóts-dhâ', com a língua entre os dentes no 'th'"
+        },
+        {
+          "en": "It's tied one to one.",
+          "pt": "Está empatado em um a um.",
+          "tip": "'tied' termina num 'd' bem curto: 'táid', não 'tái-dji'"
+        },
+        {
+          "en": "Do you want to watch the game?",
+          "pt": "Quer assistir ao jogo?",
+          "tip": "'want to' vira 'uâna' na fala rápida"
+        },
+        {
+          "en": "That was definitely a foul!",
+          "pt": "Isso foi falta com certeza!"
+        },
+        {
+          "en": "Let's grab a table near the TV.",
+          "pt": "Vamos pegar uma mesa perto da TV."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "beat",
+          "b": "bit",
+          "ptA": "vencer",
+          "ptB": "pedaço"
+        },
+        {
+          "a": "fan",
+          "b": "fun",
+          "ptA": "torcedor",
+          "ptB": "diversão"
+        },
+        {
+          "a": "win",
+          "b": "wing",
+          "ptA": "ganhar",
+          "ptB": "asa / ponta (posição)"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Who are you rooting for?",
+          "qPt": "Pra quem você está torcendo?",
+          "answers": [
+            "I'm rooting for Brazil",
+            "Brazil",
+            "I'm a Brazil fan",
+            "The home team"
+          ],
+          "answerPt": "Estou torcendo pelo Brasil."
+        },
+        {
+          "q": "What's the score?",
+          "qPt": "Qual é o placar?",
+          "answers": [
+            "It's one to one",
+            "It's tied",
+            "Two to one",
+            "It's two nothing"
+          ],
+          "answerPt": "Está um a um."
+        },
+        {
+          "q": "Do you want to watch the game at a bar?",
+          "qPt": "Quer assistir ao jogo num bar?",
+          "answers": [
+            "Sure let's go",
+            "Yeah that sounds great",
+            "Sounds good",
+            "Sorry I can't tonight"
+          ],
+          "answerPt": "Claro, vamos."
+        }
+      ],
+      "color": "#3dd6c6"
+    },
+    {
+      "id": "esportes-2",
+      "title": "Academia e esportes",
+      "subtitle": "Treino, corrida, lesões e campeonatos",
+      "guide": [
+        "'Work out' é o verbo para treinar na academia. 'Workout' (junto) é o substantivo: 'Great workout today!'",
+        "Para dores e lesões, use 'hurt' (machucar), 'pull a muscle' (distender) e 'twist my ankle' (torcer o tornozelo). 'Sore' é a dor muscular do dia seguinte.",
+        "Cuidado com 'gym': começa com som de 'dj', 'djim'. E não confunda 'walk' (caminhar, 'uók') com 'work' (trabalhar, 'uârk')."
+      ],
+      "phrases": [
+        {
+          "en": "How often do you work out?",
+          "pt": "Com que frequência você treina?",
+          "tip": "'work out' se junta: 'uâr-káut'"
+        },
+        {
+          "en": "I hit the gym every morning.",
+          "pt": "Eu vou à academia toda manhã.",
+          "tip": "'gym' soa 'djim', com 'dj' no começo"
+        },
+        {
+          "en": "I'm training for a half marathon.",
+          "pt": "Estou treinando para uma meia maratona.",
+          "tip": "'half' tem 'l' mudo: 'héf'; em 'marathon' o 'th' é com a língua entre os dentes"
+        },
+        {
+          "en": "I think I pulled a muscle.",
+          "pt": "Acho que distendi um músculo.",
+          "tip": "'pulled' termina sem vogal: 'puld'; 'muscle' soa 'mâssol'"
+        },
+        {
+          "en": "My knee is killing me.",
+          "pt": "Meu joelho está me matando.",
+          "tip": "O 'k' de 'knee' é mudo: 'ní'"
+        },
+        {
+          "en": "Who won the championship?",
+          "pt": "Quem ganhou o campeonato?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "run",
+          "b": "ran",
+          "ptA": "correr",
+          "ptB": "correu"
+        },
+        {
+          "a": "walk",
+          "b": "work",
+          "ptA": "caminhar",
+          "ptB": "trabalhar / treinar"
+        },
+        {
+          "a": "pool",
+          "b": "pull",
+          "ptA": "piscina",
+          "ptB": "puxar"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "How often do you work out?",
+          "qPt": "Com que frequência você treina?",
+          "answers": [
+            "Three times a week",
+            "Every day",
+            "I work out three times a week",
+            "Not very often"
+          ],
+          "answerPt": "Três vezes por semana."
+        },
+        {
+          "q": "What happened to your knee?",
+          "qPt": "O que aconteceu com seu joelho?",
+          "answers": [
+            "I hurt it running",
+            "I twisted it",
+            "I fell during the game",
+            "I hurt my knee playing soccer"
+          ],
+          "answerPt": "Machuquei correndo."
+        },
+        {
+          "q": "Are you running the race this weekend?",
+          "qPt": "Você vai correr a prova neste fim de semana?",
+          "answers": [
+            "Yes I am",
+            "Yeah I'm ready",
+            "No I'm still injured",
+            "I'm not sure yet"
+          ],
+          "answerPt": "Sim, vou."
+        }
+      ],
+      "color": "#b58cff"
+    }
+  ],
+  "trabalho": [
+    {
+      "id": "trabalho-1",
+      "title": "No escritório",
+      "subtitle": "Reuniões, e-mails, prazos e pedir ajuda",
+      "guide": [
+        "'Do you have a minute?' é o jeito educado de chamar um colega para conversar. Responda com 'Sure, what's up?'.",
+        "'Deadline' é prazo. 'ASAP' (as soon as possible) significa 'o quanto antes' e se fala 'êi-sép' ou letra por letra.",
+        "Cuidado com o 'i' extra no final: 'meeting' é 'mííting', não 'mítingui'; 'desk' é 'désk', não 'déski'."
+      ],
+      "phrases": [
+        {
+          "en": "Do you have a minute?",
+          "pt": "Você tem um minuto?",
+          "tip": "'have a' se junta: 'hé-vâ'"
+        },
+        {
+          "en": "Can we push the meeting back?",
+          "pt": "Podemos adiar a reunião?",
+          "tip": "'meeting' tem 'i' longo e o 't' soa como um 'r' rápido nos EUA: 'míí-rin'"
+        },
+        {
+          "en": "I'll send you an email.",
+          "pt": "Vou te mandar um e-mail.",
+          "tip": "'send you' vira 'sén-dju'"
+        },
+        {
+          "en": "When is the deadline?",
+          "pt": "Qual é o prazo?"
+        },
+        {
+          "en": "Could you give me a hand?",
+          "pt": "Você pode me dar uma ajuda?",
+          "tip": "'give me' vira 'gímmi'"
+        },
+        {
+          "en": "I'm running a bit late.",
+          "pt": "Estou um pouco atrasado."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "work",
+          "b": "walk",
+          "ptA": "trabalhar",
+          "ptB": "caminhar"
+        },
+        {
+          "a": "fill",
+          "b": "feel",
+          "ptA": "preencher",
+          "ptB": "sentir"
+        },
+        {
+          "a": "plan",
+          "b": "plane",
+          "ptA": "plano",
+          "ptB": "avião"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Do you have a minute?",
+          "qPt": "Você tem um minuto?",
+          "answers": [
+            "Sure what's up",
+            "Sure",
+            "Yes of course",
+            "Sorry I'm busy right now"
+          ],
+          "answerPt": "Claro, o que houve?"
+        },
+        {
+          "q": "When can you send me the report?",
+          "qPt": "Quando você pode me mandar o relatório?",
+          "answers": [
+            "I'll send it today",
+            "I'll send it by Friday",
+            "By Friday",
+            "Tomorrow morning"
+          ],
+          "answerPt": "Eu mando hoje."
+        },
+        {
+          "q": "Can you join the meeting at three?",
+          "qPt": "Você pode participar da reunião às três?",
+          "answers": [
+            "Yes I can",
+            "Sure I'll be there",
+            "Sorry I can't",
+            "Can we push it back"
+          ],
+          "answerPt": "Sim, posso."
+        }
+      ],
+      "color": "#5b8cff"
+    },
+    {
+      "id": "trabalho-2",
+      "title": "Entrevista de emprego",
+      "subtitle": "Experiência, pontos fortes e objetivos",
+      "guide": [
+        "Diga 'I have five years of experience', no singular. 'Experiences' significa vivências, não experiência profissional.",
+        "Em 'Tell me about yourself', responda em 1 minuto: o que você faz hoje, o que já fez e o que busca. Não conte a vida toda.",
+        "O '-ed' quase nunca vira sílaba: 'worked' soa 'uârkt' e 'managed' soa 'mé-nidjd', nunca 'uórkêd'."
+      ],
+      "phrases": [
+        {
+          "en": "Tell me about yourself.",
+          "pt": "Fale um pouco sobre você."
+        },
+        {
+          "en": "I have five years of experience.",
+          "pt": "Tenho cinco anos de experiência.",
+          "tip": "'years of' se junta: 'íír-zôv'"
+        },
+        {
+          "en": "I'm a quick learner.",
+          "pt": "Eu aprendo rápido.",
+          "tip": "'learner' soa 'lâr-nâr', com som fechado, sem 'é' aberto"
+        },
+        {
+          "en": "I work well under pressure.",
+          "pt": "Trabalho bem sob pressão.",
+          "tip": "'work' não é 'uórk'; o som é fechado: 'uârk'"
+        },
+        {
+          "en": "Where do you see yourself in five years?",
+          "pt": "Onde você se vê daqui a cinco anos?"
+        },
+        {
+          "en": "I'm looking for new challenges.",
+          "pt": "Estou buscando novos desafios."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "worked",
+          "b": "work",
+          "ptA": "trabalhou",
+          "ptB": "trabalhar"
+        },
+        {
+          "a": "live",
+          "b": "leave",
+          "ptA": "morar",
+          "ptB": "sair, deixar"
+        },
+        {
+          "a": "think",
+          "b": "sink",
+          "ptA": "pensar",
+          "ptB": "pia, afundar"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Tell me about yourself.",
+          "qPt": "Fale um pouco sobre você.",
+          "answers": [
+            "I'm a designer with five years of experience",
+            "I work in sales",
+            "I'm an engineer",
+            "I just finished college"
+          ],
+          "answerPt": "Sou designer com cinco anos de experiência."
+        },
+        {
+          "q": "What are your strengths?",
+          "qPt": "Quais são seus pontos fortes?",
+          "answers": [
+            "I'm a quick learner",
+            "I work well under pressure",
+            "I'm very organized",
+            "I'm good with people"
+          ],
+          "answerPt": "Eu aprendo rápido."
+        },
+        {
+          "q": "Why do you want this job?",
+          "qPt": "Por que você quer esta vaga?",
+          "answers": [
+            "I'm looking for new challenges",
+            "I want to grow professionally",
+            "I want to learn more",
+            "I love this area"
+          ],
+          "answerPt": "Estou buscando novos desafios."
+        }
+      ],
+      "color": "#4ade9a"
+    }
+  ],
+  "tecnologia": [
+    {
+      "id": "tecnologia-1",
+      "title": "Tecnologia no dia a dia",
+      "subtitle": "Celular, apps, senha e problemas técnicos",
+      "guide": [
+        "'My phone is dead' significa que a bateria acabou, não que o celular quebrou. Se quebrou mesmo, diga 'My phone is broken'.",
+        "Para pedir a senha do Wi-Fi, pergunte 'What's the Wi-Fi password?'. Wi-Fi se fala 'uái-fai', não 'uí-fí'.",
+        "Não coloque 'i' no final das palavras: 'app' é 'ép', não 'épi', e 'laptop' é 'lép-tóp', não 'lépi-tópi'."
+      ],
+      "phrases": [
+        {
+          "en": "What's the Wi-Fi password?",
+          "pt": "Qual é a senha do Wi-Fi?",
+          "tip": "'What's the' vira 'uóts-dhe', com a língua entre os dentes no 'th'"
+        },
+        {
+          "en": "My phone is about to die.",
+          "pt": "Meu celular está quase descarregando.",
+          "tip": "'about to' vira 'abáu-dâ'"
+        },
+        {
+          "en": "Can I charge my phone here?",
+          "pt": "Posso carregar meu celular aqui?",
+          "tip": "'charge' soa 'tchárdj', sem 'i' no final"
+        },
+        {
+          "en": "The app keeps crashing.",
+          "pt": "O app fica travando e fechando sozinho.",
+          "tip": "'keeps crashing' soa 'kíps-krésh-in'"
+        },
+        {
+          "en": "Have you tried restarting it?",
+          "pt": "Você já tentou reiniciar?"
+        },
+        {
+          "en": "I forgot my password again.",
+          "pt": "Esqueci minha senha de novo."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "chip",
+          "b": "cheap",
+          "ptA": "chip",
+          "ptB": "barato"
+        },
+        {
+          "a": "log",
+          "b": "lock",
+          "ptA": "registro",
+          "ptB": "trancar"
+        },
+        {
+          "a": "save",
+          "b": "safe",
+          "ptA": "salvar",
+          "ptB": "seguro"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What's wrong with your phone?",
+          "qPt": "Qual é o problema do seu celular?",
+          "answers": [
+            "The battery is dead",
+            "My phone is dead",
+            "It keeps crashing",
+            "The screen is broken"
+          ],
+          "answerPt": "A bateria acabou."
+        },
+        {
+          "q": "Do you know the Wi-Fi password?",
+          "qPt": "Você sabe a senha do Wi-Fi?",
+          "answers": [
+            "No I don't",
+            "Yes I do",
+            "Sorry I don't know",
+            "Let me check"
+          ],
+          "answerPt": "Não, não sei."
+        },
+        {
+          "q": "Have you tried restarting it?",
+          "qPt": "Você já tentou reiniciar?",
+          "answers": [
+            "Yes I have",
+            "Not yet",
+            "No I haven't",
+            "Yes but it didn't work"
+          ],
+          "answerPt": "Sim, já tentei."
+        }
+      ],
+      "color": "#ff8fb1"
+    },
+    {
+      "id": "tecnologia-2",
+      "title": "Trabalho com tecnologia",
+      "subtitle": "Software, dados, IA e projetos",
+      "guide": [
+        "Para explicar um projeto, comece com 'Basically, it's a...' ou 'The idea is to...'. Soa natural e organiza a sua fala.",
+        "'Data' pode ser 'dêita' (EUA) ou 'dáta' (Reino Unido). E 'AI' se fala pelas letras: 'ei-ai'.",
+        "Cuidado com o -ed: 'worked', 'fixed' e 'launched' não têm 'êd'. Ficam 'uârkt', 'fikst' e 'lóntcht'. O som 'id' só aparece depois de T ou D, como em 'tested' e 'updated'."
+      ],
+      "phrases": [
+        {
+          "en": "I work as a software developer.",
+          "pt": "Trabalho como desenvolvedor de software.",
+          "tip": "'developer' soa 'di-vé-lâ-per', com força no 'vé'"
+        },
+        {
+          "en": "We're building an app for students.",
+          "pt": "Estamos criando um app para estudantes.",
+          "tip": "'building an' se junta: 'bíl-din-gên'"
+        },
+        {
+          "en": "Basically, it's a tool for teachers.",
+          "pt": "Basicamente, é uma ferramenta para professores.",
+          "tip": "'basically' soa 'bêi-sik-li', o meio quase some"
+        },
+        {
+          "en": "We use AI to analyze data.",
+          "pt": "Usamos IA para analisar dados.",
+          "tip": "'AI' soa 'ei-ai' e 'analyze' soa 'é-nâ-laiz'"
+        },
+        {
+          "en": "The main goal is saving time.",
+          "pt": "O objetivo principal é economizar tempo."
+        },
+        {
+          "en": "We're still testing it.",
+          "pt": "Ainda estamos testando."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "bug",
+          "b": "bag",
+          "ptA": "erro de programa",
+          "ptB": "sacola"
+        },
+        {
+          "a": "work",
+          "b": "walk",
+          "ptA": "trabalhar",
+          "ptB": "caminhar"
+        },
+        {
+          "a": "think",
+          "b": "sink",
+          "ptA": "pensar",
+          "ptB": "pia"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What do you do?",
+          "qPt": "O que você faz da vida?",
+          "answers": [
+            "I'm a software developer",
+            "I work as a developer",
+            "I work in tech",
+            "I'm a data analyst"
+          ],
+          "answerPt": "Sou desenvolvedor de software."
+        },
+        {
+          "q": "What's your project about?",
+          "qPt": "Sobre o que é o seu projeto?",
+          "answers": [
+            "It's an app for students",
+            "Basically it's an app for students",
+            "It's a tool for teachers",
+            "We use AI to analyze data"
+          ],
+          "answerPt": "É um app para estudantes."
+        },
+        {
+          "q": "Is it ready yet?",
+          "qPt": "Já está pronto?",
+          "answers": [
+            "Not yet",
+            "We're still testing it",
+            "Almost",
+            "Yes it's ready"
+          ],
+          "answerPt": "Ainda não."
+        }
+      ],
+      "color": "#ff9f5a"
+    }
+  ],
+  "compras": [
+    {
+      "id": "compras-1",
+      "title": "Na loja de roupas",
+      "subtitle": "Tamanho, provador, preço, troca e devolução",
+      "guide": [
+        "Quando o vendedor oferecer ajuda e você só quiser olhar, diga 'I'm just looking, thanks.' É educado e bem comum.",
+        "Nos EUA, trocar é 'exchange' e devolver com reembolso é 'return'. Guarde sempre o 'receipt' (recibo, com o 'p' mudo: 'ri-cít').",
+        "Tamanhos costumam ser 'small', 'medium' e 'large'. Em 'medium' o som é 'mí-di-âm', não 'mé-dium'."
+      ],
+      "phrases": [
+        {
+          "en": "Do you have this in medium?",
+          "pt": "Você tem este no tamanho M?",
+          "tip": "'Do you have' se junta: 'dju-hév'"
+        },
+        {
+          "en": "Where are the fitting rooms?",
+          "pt": "Onde ficam os provadores?",
+          "tip": "O 't' de 'fitting' vira um 'r' leve: 'fí-rin'"
+        },
+        {
+          "en": "It's a little too tight.",
+          "pt": "Está um pouco apertado demais.",
+          "tip": "'little' soa como 'lí-rou'"
+        },
+        {
+          "en": "How much is this jacket?",
+          "pt": "Quanto custa esta jaqueta?",
+          "tip": "'How much is' vira 'rau-mâ-tchiz'"
+        },
+        {
+          "en": "Can I exchange this for a bigger size?",
+          "pt": "Posso trocar por um tamanho maior?"
+        },
+        {
+          "en": "I'd like to return this, please.",
+          "pt": "Eu gostaria de devolver isto, por favor."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "fit",
+          "b": "feet",
+          "ptA": "servir (roupa)",
+          "ptB": "pés"
+        },
+        {
+          "a": "price",
+          "b": "prize",
+          "ptA": "preço",
+          "ptB": "prêmio"
+        },
+        {
+          "a": "hat",
+          "b": "rat",
+          "ptA": "chapéu",
+          "ptB": "rato"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Can I help you find anything?",
+          "qPt": "Posso ajudar a encontrar alguma coisa?",
+          "answers": [
+            "I'm just looking thanks",
+            "Just looking thanks",
+            "Do you have this in medium",
+            "Yes I'm looking for a jacket"
+          ],
+          "answerPt": "Só estou olhando, obrigado."
+        },
+        {
+          "q": "How does it fit?",
+          "qPt": "Como ficou?",
+          "answers": [
+            "It's a little too tight",
+            "It fits well",
+            "It's too big",
+            "It's perfect"
+          ],
+          "answerPt": "Está um pouco apertado demais."
+        },
+        {
+          "q": "Do you have the receipt?",
+          "qPt": "Você tem o recibo?",
+          "answers": [
+            "Yes here it is",
+            "Yes I do",
+            "No I don't",
+            "Sorry I lost it"
+          ],
+          "answerPt": "Sim, aqui está."
+        }
+      ],
+      "color": "#ff8fb1"
+    },
+    {
+      "id": "compras-2",
+      "title": "Compras online e no mercado",
+      "subtitle": "Entrega, rastreio, supermercado e promoções",
+      "guide": [
+        "'Package' é pacote/encomenda, e se pronuncia 'pé-kidj'. 'Track' é rastrear: 'Can I track my order?'",
+        "No mercado, o caixa pode perguntar 'Paper or plastic?' (saco de papel ou plástico?). Em muitos lugares se leva a própria sacola.",
+        "'Buy one, get one free' (às vezes 'BOGO') é o famoso 'leve dois, pague um'. 'On sale' significa em promoção, não 'à venda'."
+      ],
+      "phrases": [
+        {
+          "en": "When will my order arrive?",
+          "pt": "Quando meu pedido vai chegar?",
+          "tip": "'When will' se junta: 'uén-wiu'"
+        },
+        {
+          "en": "Can I track my package?",
+          "pt": "Posso rastrear minha encomenda?",
+          "tip": "'package' soa 'pé-kidj', sem o 'e' final"
+        },
+        {
+          "en": "The delivery is running late.",
+          "pt": "A entrega está atrasada."
+        },
+        {
+          "en": "Where can I find the eggs?",
+          "pt": "Onde encontro os ovos?",
+          "tip": "'find the': coloque a língua entre os dentes no 'th': 'fáin-dhe'"
+        },
+        {
+          "en": "Is this on sale?",
+          "pt": "Isto está em promoção?",
+          "tip": "Tudo se junta: 'i-zdhi-són-sêiu'"
+        },
+        {
+          "en": "Buy one, get one free.",
+          "pt": "Leve dois, pague um."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "ship",
+          "b": "sheep",
+          "ptA": "enviar",
+          "ptB": "ovelha"
+        },
+        {
+          "a": "bag",
+          "b": "back",
+          "ptA": "sacola",
+          "ptB": "costas"
+        },
+        {
+          "a": "three",
+          "b": "tree",
+          "ptA": "três",
+          "ptB": "árvore"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Would you like a bag?",
+          "qPt": "Quer uma sacola?",
+          "answers": [
+            "Yes please",
+            "No thanks",
+            "No I brought my own",
+            "I'm good thanks"
+          ],
+          "answerPt": "Sim, por favor."
+        },
+        {
+          "q": "Did you get your package?",
+          "qPt": "Você recebeu sua encomenda?",
+          "answers": [
+            "Not yet",
+            "Yes it arrived yesterday",
+            "No it's running late",
+            "Yes I did"
+          ],
+          "answerPt": "Ainda não."
+        },
+        {
+          "q": "Did you find everything okay?",
+          "qPt": "Encontrou tudo certinho?",
+          "answers": [
+            "Yes thanks",
+            "Yes I did thanks",
+            "Where can I find the eggs",
+            "Not really"
+          ],
+          "answerPt": "Sim, obrigado."
+        }
+      ],
+      "color": "#ff9f5a"
+    }
+  ],
+  "musica": [
+    {
+      "id": "musica-1",
+      "title": "Música",
+      "subtitle": "Estilos, artistas favoritos e playlists",
+      "guide": [
+        "Para perguntar o gosto musical de alguém, use 'What kind of music do you like?'. Para responder de forma natural, diga 'I'm into...' ou 'I'm a big fan of...'.",
+        "Com instrumentos, use 'play the': 'I play the guitar', 'She plays the drums'. 'Guitar' pode ser violão ou guitarra, e o contexto mostra qual é.",
+        "Pronúncia: 'song' termina com som nasal, sem 'gui' no final. Diga 'sónn', nunca 'sôngui'."
+      ],
+      "phrases": [
+        {
+          "en": "What kind of music do you like?",
+          "pt": "Que tipo de música você gosta?",
+          "tip": "'kind of' se junta: 'cáin-dâv'"
+        },
+        {
+          "en": "I'm really into rock music.",
+          "pt": "Eu curto muito rock.",
+          "tip": "'really' tem R suave, sem vibrar: 'ríli'"
+        },
+        {
+          "en": "Who's your favorite singer?",
+          "pt": "Quem é seu cantor favorito?",
+          "tip": "'favorite' soa quase com duas sílabas: 'fêiv-rit'"
+        },
+        {
+          "en": "I play the guitar a little.",
+          "pt": "Eu toco um pouco de violão.",
+          "tip": "'guitar' tem acento no final: 'gui-TÁR'"
+        },
+        {
+          "en": "This song is stuck in my head.",
+          "pt": "Essa música não sai da minha cabeça."
+        },
+        {
+          "en": "Can you send me that playlist?",
+          "pt": "Pode me mandar essa playlist?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "song",
+          "b": "sung",
+          "ptA": "canção",
+          "ptB": "cantado"
+        },
+        {
+          "a": "beat",
+          "b": "bit",
+          "ptA": "batida",
+          "ptB": "pedacinho"
+        },
+        {
+          "a": "band",
+          "b": "bend",
+          "ptA": "banda",
+          "ptB": "dobrar"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What kind of music do you like?",
+          "qPt": "Que tipo de música você gosta?",
+          "answers": [
+            "I like rock",
+            "I'm into pop music",
+            "I really like jazz",
+            "I like all kinds of music"
+          ],
+          "answerPt": "Eu gosto de rock."
+        },
+        {
+          "q": "Do you play any instruments?",
+          "qPt": "Você toca algum instrumento?",
+          "answers": [
+            "I play the guitar",
+            "Yes I play the piano",
+            "No I don't",
+            "Not really"
+          ],
+          "answerPt": "Eu toco violão."
+        },
+        {
+          "q": "What have you been listening to lately?",
+          "qPt": "O que você tem ouvido ultimamente?",
+          "answers": [
+            "A lot of pop",
+            "Mostly rock",
+            "Some old songs",
+            "A lot of jazz"
+          ],
+          "answerPt": "Muito pop."
+        }
+      ],
+      "color": "#5b8cff"
+    },
+    {
+      "id": "musica-2",
+      "title": "Shows e festivais",
+      "subtitle": "Ingressos, line-up, fila e cantar junto",
+      "guide": [
+        "Para show de música, os nativos dizem 'concert' ou, mais informal, 'gig'. 'Show' costuma ser usado para TV ou teatro.",
+        "'Line-up' é a lista de artistas do festival. 'Headliner' é a atração principal, e 'opening act' é quem abre o show.",
+        "Pronúncia: 'ticket' termina com T fraco, sem 'tchi' no final. Diga 'tí-kit', não 'tíketchi'."
+      ],
+      "phrases": [
+        {
+          "en": "Did you get tickets for the concert?",
+          "pt": "Você conseguiu ingressos para o show?",
+          "tip": "'Did you' se junta: 'dídju'"
+        },
+        {
+          "en": "The tickets sold out in minutes.",
+          "pt": "Os ingressos esgotaram em minutos.",
+          "tip": "'sold out' se junta: 'sôl-dáut'"
+        },
+        {
+          "en": "Who's headlining the festival?",
+          "pt": "Quem é a atração principal do festival?"
+        },
+        {
+          "en": "How long have you been in line?",
+          "pt": "Há quanto tempo você está na fila?",
+          "tip": "'been in' se junta: 'bí-nin'"
+        },
+        {
+          "en": "Let's get closer to the stage.",
+          "pt": "Vamos chegar mais perto do palco."
+        },
+        {
+          "en": "I know all the lyrics!",
+          "pt": "Eu sei a letra toda!"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "line",
+          "b": "lime",
+          "ptA": "fila",
+          "ptB": "limão"
+        },
+        {
+          "a": "sing",
+          "b": "thing",
+          "ptA": "cantar",
+          "ptB": "coisa"
+        },
+        {
+          "a": "fan",
+          "b": "fun",
+          "ptA": "fã",
+          "ptB": "diversão"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Are you going to the festival this weekend?",
+          "qPt": "Você vai ao festival neste fim de semana?",
+          "answers": [
+            "Yes I am",
+            "Yeah I got tickets",
+            "No I'm not",
+            "I wish"
+          ],
+          "answerPt": "Sim, vou."
+        },
+        {
+          "q": "How long have you been waiting in line?",
+          "qPt": "Há quanto tempo você está esperando na fila?",
+          "answers": [
+            "About an hour",
+            "Two hours",
+            "Since this morning",
+            "Not long"
+          ],
+          "answerPt": "Mais ou menos uma hora."
+        },
+        {
+          "q": "Who do you want to see the most?",
+          "qPt": "Quem você mais quer ver?",
+          "answers": [
+            "The headliner",
+            "The last band",
+            "The opening act",
+            "I want to see everyone"
+          ],
+          "answerPt": "A atração principal."
+        }
+      ],
+      "color": "#4ade9a"
+    }
+  ],
+  "filmes": [
+    {
+      "id": "filmes-1",
+      "title": "Filmes e séries",
+      "subtitle": "Gêneros, recomendar e opinar sem spoilers",
+      "guide": [
+        "Para recomendar, diga 'You should watch...' ou, com mais empolgação, 'You have to see this!'.",
+        "'No spoilers!' é a frase-chave. Antes de contar algo do final, avise com 'Spoiler alert!'.",
+        "Cuidado com 'movie': o 'o' soa como um 'u' longo, 'múvi'. Já 'series' é igual no singular e no plural: 'sí-riz'."
+      ],
+      "phrases": [
+        {
+          "en": "What kind of movies do you like?",
+          "pt": "Que tipo de filme você curte?",
+          "tip": "'kind of' se junta: 'káin-dâv'"
+        },
+        {
+          "en": "I'm really into horror movies.",
+          "pt": "Eu curto muito filme de terror.",
+          "tip": "'horror' começa com H aspirado, como um 'rr' suave: 'rró-rer'"
+        },
+        {
+          "en": "You should totally watch it.",
+          "pt": "Você tem que assistir, sério.",
+          "tip": "'should' tem L mudo: 'shud'"
+        },
+        {
+          "en": "No spoilers, please!",
+          "pt": "Sem spoilers, por favor!"
+        },
+        {
+          "en": "It was way better than I expected.",
+          "pt": "Foi muito melhor do que eu esperava.",
+          "tip": "No inglês americano, 'better' soa 'bé-rer'"
+        },
+        {
+          "en": "The ending was kind of disappointing.",
+          "pt": "O final foi meio decepcionante."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "film",
+          "b": "feel",
+          "ptA": "filme",
+          "ptB": "sentir"
+        },
+        {
+          "a": "theme",
+          "b": "team",
+          "ptA": "tema",
+          "ptB": "time"
+        },
+        {
+          "a": "cast",
+          "b": "cost",
+          "ptA": "elenco",
+          "ptB": "custo"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What kind of movies do you like?",
+          "qPt": "Que tipo de filme você gosta?",
+          "answers": [
+            "I like comedies",
+            "I'm into horror movies",
+            "I love action movies",
+            "Mostly dramas"
+          ],
+          "answerPt": "Eu gosto de comédias."
+        },
+        {
+          "q": "Have you seen anything good lately?",
+          "qPt": "Você viu alguma coisa boa ultimamente?",
+          "answers": [
+            "Yes I just watched a great series",
+            "Yeah you should watch it",
+            "Not really",
+            "No not really"
+          ],
+          "answerPt": "Sim, acabei de assistir a uma série ótima."
+        },
+        {
+          "q": "Did you like the ending?",
+          "qPt": "Você gostou do final?",
+          "answers": [
+            "Yes I loved it",
+            "It was kind of disappointing",
+            "Not really",
+            "No spoilers please"
+          ],
+          "answerPt": "Sim, eu amei."
+        }
+      ],
+      "color": "#ffc24b"
+    },
+    {
+      "id": "filmes-2",
+      "title": "Cinema e streaming",
+      "subtitle": "Ingressos, legendas e maratonas",
+      "guide": [
+        "'Binge-watch' é maratonar uma série. Exemplo: 'I binge-watched the whole season.'",
+        "Legendas são 'subtitles' e dublado é 'dubbed'. Para perguntar sobre o filme, diga 'Is it dubbed or subtitled?'.",
+        "'Seat' (assento) tem 'i' longo: 'siit'. Se você falar curto, vira 'sit' (sentar)."
+      ],
+      "phrases": [
+        {
+          "en": "Two tickets for the seven o'clock show.",
+          "pt": "Dois ingressos para a sessão das sete.",
+          "tip": "'o'clock' soa 'â-klók'"
+        },
+        {
+          "en": "Can we sit in the back?",
+          "pt": "Podemos sentar no fundo?",
+          "tip": "'sit in' se junta: 'sí-rin'"
+        },
+        {
+          "en": "Is it dubbed or subtitled?",
+          "pt": "É dublado ou legendado?",
+          "tip": "'dubbed' termina seco, sem vogal no fim: 'dâbd', e não 'dâbidi'"
+        },
+        {
+          "en": "Can you turn on the subtitles?",
+          "pt": "Pode ligar as legendas?"
+        },
+        {
+          "en": "I binge-watched the whole season.",
+          "pt": "Eu maratonei a temporada inteira.",
+          "tip": "'watched' tem uma sílaba só: 'uótcht'"
+        },
+        {
+          "en": "Let's watch one more episode.",
+          "pt": "Vamos assistir a mais um episódio."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "seat",
+          "b": "sit",
+          "ptA": "assento",
+          "ptB": "sentar"
+        },
+        {
+          "a": "watch",
+          "b": "wash",
+          "ptA": "assistir",
+          "ptB": "lavar"
+        },
+        {
+          "a": "back",
+          "b": "bag",
+          "ptA": "fundo",
+          "ptB": "sacola"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Which showtime would you like?",
+          "qPt": "Qual sessão você quer?",
+          "answers": [
+            "The seven o'clock show please",
+            "Seven o'clock please",
+            "The seven o'clock",
+            "The later one please"
+          ],
+          "answerPt": "A sessão das sete, por favor."
+        },
+        {
+          "q": "Where would you like to sit?",
+          "qPt": "Onde você gostaria de sentar?",
+          "answers": [
+            "In the back please",
+            "In the middle please",
+            "In the back",
+            "Near the front"
+          ],
+          "answerPt": "No fundo, por favor."
+        },
+        {
+          "q": "Do you want to watch another episode?",
+          "qPt": "Quer assistir a mais um episódio?",
+          "answers": [
+            "Yes one more episode",
+            "Sure let's watch one more",
+            "Yeah why not",
+            "No I'm going to bed"
+          ],
+          "answerPt": "Sim, mais um episódio."
+        }
+      ],
+      "color": "#ff6b4a"
+    }
+  ],
+  "saude": [
+    {
+      "id": "saude-1",
+      "title": "No médico e na farmácia",
+      "subtitle": "Sintomas, remédios e consulta",
+      "guide": [
+        "Para descrever sintomas use 'I have a...' (I have a headache) ou 'My ... hurts' (My back hurts). Evite traduzir 'estou com dor de cabeça' palavra por palavra.",
+        "Receita médica é 'prescription', não 'recipe' (que é receita de cozinha). Remédio que se compra sem receita é 'over the counter'.",
+        "Em 'headache' e 'stomachache' o 'ch' tem som de 'k': 'hédeik', 'stâmakeik'."
+      ],
+      "phrases": [
+        {
+          "en": "I have a headache.",
+          "pt": "Estou com dor de cabeça.",
+          "tip": "'headache' soa 'hédeik', com som de 'k' no final"
+        },
+        {
+          "en": "My throat hurts.",
+          "pt": "Minha garganta está doendo.",
+          "tip": "'throat' tem a língua entre os dentes no TH: 'thrôut', não 'trôut'"
+        },
+        {
+          "en": "I've had a fever since yesterday.",
+          "pt": "Estou com febre desde ontem.",
+          "tip": "'I've had a' se junta: 'aiv-ré-dâ'"
+        },
+        {
+          "en": "Do I need a prescription for this?",
+          "pt": "Preciso de receita para isso?"
+        },
+        {
+          "en": "How often should I take it?",
+          "pt": "De quanto em quanto tempo devo tomar?",
+          "tip": "'take it' se junta: 'têi-kit'"
+        },
+        {
+          "en": "I'd like to make an appointment.",
+          "pt": "Eu gostaria de marcar uma consulta.",
+          "tip": "'make an' vira 'mêi-kân'"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "pill",
+          "b": "peel",
+          "ptA": "comprimido",
+          "ptB": "casca"
+        },
+        {
+          "a": "hurt",
+          "b": "heart",
+          "ptA": "doer",
+          "ptB": "coração"
+        },
+        {
+          "a": "back",
+          "b": "bag",
+          "ptA": "costas",
+          "ptB": "sacola"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What seems to be the problem?",
+          "qPt": "Qual parece ser o problema?",
+          "answers": [
+            "I have a headache",
+            "My throat hurts",
+            "I have a fever",
+            "I don't feel well"
+          ],
+          "answerPt": "Estou com dor de cabeça."
+        },
+        {
+          "q": "How long have you had these symptoms?",
+          "qPt": "Há quanto tempo você está com esses sintomas?",
+          "answers": [
+            "Since yesterday",
+            "For two days",
+            "About a week",
+            "Since last night"
+          ],
+          "answerPt": "Desde ontem."
+        },
+        {
+          "q": "Are you allergic to any medication?",
+          "qPt": "Você tem alergia a algum medicamento?",
+          "answers": [
+            "No I'm not",
+            "Not that I know of",
+            "Yes I'm allergic to penicillin",
+            "No"
+          ],
+          "answerPt": "Não, não tenho."
+        }
+      ],
+      "color": "#3dd6c6"
+    },
+    {
+      "id": "saude-2",
+      "title": "Bem-estar",
+      "subtitle": "Sono, alimentação, estresse e rotina",
+      "guide": [
+        "Para falar de hábitos use o presente simples com advérbios de frequência: 'I usually sleep eight hours', 'I never skip breakfast'.",
+        "'I'm stressed out' é muito mais natural do que traduzir 'estou com estresse'. Para relaxar depois de um dia cheio, diga 'unwind' ou 'chill out'.",
+        "Em 'sleep' a vogal é longa ('sliip'); em 'slip' é curta e relaxada. Muitos brasileiros pronunciam as duas iguais."
+      ],
+      "phrases": [
+        {
+          "en": "I didn't sleep well last night.",
+          "pt": "Não dormi bem ontem à noite.",
+          "tip": "'didn't' quase sem o T final: 'dí-dn'; 'last night' vira 'lés-náit'"
+        },
+        {
+          "en": "I'm trying to eat healthier.",
+          "pt": "Estou tentando comer de forma mais saudável.",
+          "tip": "'healthier' tem TH com a língua entre os dentes: 'hél-thiâr'"
+        },
+        {
+          "en": "I've been really stressed out lately.",
+          "pt": "Ando muito estressado ultimamente.",
+          "tip": "'stressed out' se junta: 'strés-táut'"
+        },
+        {
+          "en": "I work out three times a week.",
+          "pt": "Eu malho três vezes por semana.",
+          "tip": "'work out' vira 'wôr-káut'"
+        },
+        {
+          "en": "You should take a break.",
+          "pt": "Você devia fazer uma pausa."
+        },
+        {
+          "en": "Do you get enough sleep?",
+          "pt": "Você dorme o suficiente?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "sleep",
+          "b": "slip",
+          "ptA": "dormir",
+          "ptB": "escorregar"
+        },
+        {
+          "a": "eat",
+          "b": "it",
+          "ptA": "comer",
+          "ptB": "isso"
+        },
+        {
+          "a": "breath",
+          "b": "bread",
+          "ptA": "respiração",
+          "ptB": "pão"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "How many hours do you usually sleep?",
+          "qPt": "Quantas horas você costuma dormir?",
+          "answers": [
+            "About seven hours",
+            "Eight hours",
+            "I usually sleep seven hours",
+            "Not enough"
+          ],
+          "answerPt": "Umas sete horas."
+        },
+        {
+          "q": "What do you do to relax?",
+          "qPt": "O que você faz para relaxar?",
+          "answers": [
+            "I listen to music",
+            "I go for a walk",
+            "I watch movies",
+            "I read a book"
+          ],
+          "answerPt": "Eu escuto música."
+        },
+        {
+          "q": "Do you exercise regularly?",
+          "qPt": "Você faz exercício regularmente?",
+          "answers": [
+            "Yes I work out three times a week",
+            "Yes I do",
+            "Not really",
+            "No I don't"
+          ],
+          "answerPt": "Sim, eu malho três vezes por semana."
+        }
+      ],
+      "color": "#b58cff"
+    }
+  ],
+  "familia": [
+    {
+      "id": "familia-1",
+      "title": "Minha família",
+      "subtitle": "Parentes, idades e profissões",
+      "guide": [
+        "Para apresentar alguém pessoalmente, diga 'This is my sister, Ana.' Soa bem mais natural do que 'She is my sister'.",
+        "Idade em inglês usa o verbo 'to be': 'I'm fifteen' ou 'She's forty years old'. Nunca diga 'I have fifteen years'.",
+        "O 'th' de 'mother', 'father' e 'brother' é vibrado: ponha a ponta da língua entre os dentes e solte a voz. Não troque por 'd' ('móder')."
+      ],
+      "phrases": [
+        {
+          "en": "This is my older brother.",
+          "pt": "Este é meu irmão mais velho.",
+          "tip": "'This is' se junta: 'dhí-siz'"
+        },
+        {
+          "en": "How many brothers and sisters do you have?",
+          "pt": "Quantos irmãos e irmãs você tem?",
+          "tip": "'do you' quase some: 'dju-hév'"
+        },
+        {
+          "en": "She's twelve years old.",
+          "pt": "Ela tem doze anos.",
+          "tip": "'twelve' termina em 'lv': 'tuélv', sem 'i' no final"
+        },
+        {
+          "en": "What does your dad do?",
+          "pt": "O que seu pai faz (de profissão)?",
+          "tip": "'What does' sai rápido: 'uât-dâz'"
+        },
+        {
+          "en": "My mom is a nurse.",
+          "pt": "Minha mãe é enfermeira."
+        },
+        {
+          "en": "I'm an only child.",
+          "pt": "Sou filho único / filha única."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "three",
+          "b": "tree",
+          "ptA": "três",
+          "ptB": "árvore"
+        },
+        {
+          "a": "man",
+          "b": "men",
+          "ptA": "homem",
+          "ptB": "homens"
+        },
+        {
+          "a": "son",
+          "b": "song",
+          "ptA": "filho",
+          "ptB": "canção"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Do you have any brothers or sisters?",
+          "qPt": "Você tem irmãos ou irmãs?",
+          "answers": [
+            "Yes I have one brother",
+            "Yes I have a sister",
+            "No I'm an only child",
+            "I have two sisters"
+          ],
+          "answerPt": "Sim, tenho um irmão."
+        },
+        {
+          "q": "How old is your sister?",
+          "qPt": "Quantos anos sua irmã tem?",
+          "answers": [
+            "She's twelve years old",
+            "She's twelve",
+            "She is twelve",
+            "She's ten years old"
+          ],
+          "answerPt": "Ela tem doze anos."
+        },
+        {
+          "q": "What does your mom do?",
+          "qPt": "O que sua mãe faz?",
+          "answers": [
+            "She's a nurse",
+            "My mom is a nurse",
+            "She's a teacher",
+            "She works at a hospital"
+          ],
+          "answerPt": "Ela é enfermeira."
+        }
+      ],
+      "color": "#ffc24b"
+    },
+    {
+      "id": "familia-2",
+      "title": "Casa e rotina",
+      "subtitle": "Cômodos, tarefas e o dia a dia",
+      "guide": [
+        "Tarefas domésticas costumam usar 'do': 'do the dishes', 'do the laundry'. Mas arrumar a cama é 'make the bed'.",
+        "Para falar da rotina, use o presente simples com 'usually', 'always' e 'never'. Para horas use 'at seven'; para períodos, 'in the morning'.",
+        "O 'h' de 'house', 'home' e 'have' é um sopro leve, como o 'r' de 'rato' bem suave. Não apague: 'house' não é 'áuss'."
+      ],
+      "phrases": [
+        {
+          "en": "I usually get up at seven.",
+          "pt": "Eu geralmente levanto às sete.",
+          "tip": "'get up at' se junta: 'gué-râ-pét', com o t soando como r leve"
+        },
+        {
+          "en": "Whose turn is it to do the dishes?",
+          "pt": "De quem é a vez de lavar a louça?"
+        },
+        {
+          "en": "Can you take out the trash?",
+          "pt": "Pode levar o lixo para fora?",
+          "tip": "'take out' se junta: 'têi-káut'"
+        },
+        {
+          "en": "I'm in the kitchen!",
+          "pt": "Estou na cozinha!",
+          "tip": "'kitchen' tem i curto: 'kí-tchen'"
+        },
+        {
+          "en": "Don't forget to make your bed.",
+          "pt": "Não esqueça de arrumar sua cama."
+        },
+        {
+          "en": "What time do you go to bed?",
+          "pt": "Que horas você vai dormir?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "bed",
+          "b": "bad",
+          "ptA": "cama",
+          "ptB": "ruim"
+        },
+        {
+          "a": "sink",
+          "b": "think",
+          "ptA": "pia",
+          "ptB": "pensar"
+        },
+        {
+          "a": "wash",
+          "b": "watch",
+          "ptA": "lavar",
+          "ptB": "assistir"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What time do you get up?",
+          "qPt": "Que horas você levanta?",
+          "answers": [
+            "I get up at seven",
+            "At seven",
+            "I usually get up at six",
+            "Around seven"
+          ],
+          "answerPt": "Eu levanto às sete."
+        },
+        {
+          "q": "Can you help me with the dishes?",
+          "qPt": "Pode me ajudar com a louça?",
+          "answers": [
+            "Sure no problem",
+            "Yes of course",
+            "Sure I'll help",
+            "Sorry I'm busy right now"
+          ],
+          "answerPt": "Claro, sem problema."
+        },
+        {
+          "q": "Where are you?",
+          "qPt": "Onde você está?",
+          "answers": [
+            "I'm in the kitchen",
+            "In the kitchen",
+            "I'm in my room",
+            "I'm in the living room"
+          ],
+          "answerPt": "Estou na cozinha."
+        }
+      ],
+      "color": "#ff6b4a"
+    }
+  ],
+  "natureza": [
+    {
+      "id": "natureza-1",
+      "title": "Natureza e animais",
+      "subtitle": "Bichos de estimação, parques e o tempo",
+      "guide": [
+        "Para falar do tempo use sempre 'It's' + adjetivo: 'It's sunny', 'It's cloudy', 'It's windy'. Nunca diga só 'Is sunny', o 'It' é obrigatório.",
+        "Falar do tempo é o jeito clássico de puxar conversa com desconhecidos em países de língua inglesa. Um simples 'Nice day, isn't it?' já abre papo.",
+        "Muitos donos chamam o próprio pet de 'he' ou 'she', não de 'it'. Se perguntar sobre o bicho de alguém, 'What's his name?' soa mais simpático."
+      ],
+      "phrases": [
+        {
+          "en": "Do you have any pets?",
+          "pt": "Você tem algum bicho de estimação?",
+          "tip": "'Do you have' se junta: 'dju-hév'"
+        },
+        {
+          "en": "I have a dog and a cat.",
+          "pt": "Eu tenho um cachorro e um gato.",
+          "tip": "'dog and a' vira 'dó-guen-â'"
+        },
+        {
+          "en": "What's the weather like today?",
+          "pt": "Como está o tempo hoje?",
+          "tip": "Em 'weather' a língua fica entre os dentes: 'uéðer', não 'uéder'"
+        },
+        {
+          "en": "It's going to rain later.",
+          "pt": "Vai chover mais tarde.",
+          "tip": "'going to' na fala vira 'gâna'"
+        },
+        {
+          "en": "Let's go for a walk in the park.",
+          "pt": "Vamos dar uma caminhada no parque.",
+          "tip": "Em 'walk' o L não soa: 'uók'"
+        },
+        {
+          "en": "It's really hot outside.",
+          "pt": "Está muito quente lá fora."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "sheep",
+          "b": "ship",
+          "ptA": "ovelha",
+          "ptB": "navio"
+        },
+        {
+          "a": "three",
+          "b": "tree",
+          "ptA": "três",
+          "ptB": "árvore"
+        },
+        {
+          "a": "hill",
+          "b": "ill",
+          "ptA": "colina",
+          "ptB": "doente"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Do you have any pets?",
+          "qPt": "Você tem algum bicho de estimação?",
+          "answers": [
+            "Yes I have a dog",
+            "Yes I have a cat",
+            "Yes I do",
+            "No I don't"
+          ],
+          "answerPt": "Sim, eu tenho um cachorro."
+        },
+        {
+          "q": "What's the weather like today?",
+          "qPt": "Como está o tempo hoje?",
+          "answers": [
+            "It's sunny",
+            "It's really hot",
+            "It's cold",
+            "It's raining"
+          ],
+          "answerPt": "Está ensolarado."
+        },
+        {
+          "q": "Do you want to go to the park?",
+          "qPt": "Você quer ir ao parque?",
+          "answers": [
+            "Sure let's go",
+            "Yes I'd love to",
+            "Sounds good",
+            "Not today"
+          ],
+          "answerPt": "Claro, vamos."
+        }
+      ],
+      "color": "#ffc24b"
+    },
+    {
+      "id": "natureza-2",
+      "title": "Ao ar livre",
+      "subtitle": "Trilha, praia, acampamento e meio ambiente",
+      "guide": [
+        "Com atividades em -ing use 'go' sem 'to': 'go hiking', 'go camping', 'go swimming'. Mas com lugar usa 'to': 'go to the beach'.",
+        "Fazer trilha é 'go hiking' e a trilha em si é 'trail'. 'Track' normalmente é pista de corrida, não trilha na mata.",
+        "O H inicial de 'hike', 'hot' e 'heat' é um sopro suave, parecido com o R de 'rato' bem leve. Ele nunca é mudo como em 'hora'."
+      ],
+      "phrases": [
+        {
+          "en": "How long is the trail?",
+          "pt": "Qual é a extensão da trilha?",
+          "tip": "'trail' termina com L escuro: 'trêiôl'"
+        },
+        {
+          "en": "Don't forget the sunscreen.",
+          "pt": "Não esqueça o protetor solar.",
+          "tip": "O T de 'don't' quase some: 'dôun-ferguét'"
+        },
+        {
+          "en": "Let's set up the tent here.",
+          "pt": "Vamos montar a barraca aqui.",
+          "tip": "'set up' se junta e o T vira quase R: 'sé-râp'"
+        },
+        {
+          "en": "The water is freezing!",
+          "pt": "A água está gelada!"
+        },
+        {
+          "en": "Please don't leave any trash.",
+          "pt": "Por favor, não deixe lixo.",
+          "tip": "'trash' tem o A aberto, como 'é': 'trésh'"
+        },
+        {
+          "en": "We should recycle more.",
+          "pt": "A gente deveria reciclar mais."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "sand",
+          "b": "send",
+          "ptA": "areia",
+          "ptB": "enviar"
+        },
+        {
+          "a": "path",
+          "b": "pass",
+          "ptA": "caminho",
+          "ptB": "passar"
+        },
+        {
+          "a": "rock",
+          "b": "lock",
+          "ptA": "pedra",
+          "ptB": "fechadura"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Have you ever gone camping?",
+          "qPt": "Você já foi acampar?",
+          "answers": [
+            "Yes I have",
+            "Yes many times",
+            "No I haven't",
+            "No never"
+          ],
+          "answerPt": "Sim, já."
+        },
+        {
+          "q": "Do you prefer the beach or the mountains?",
+          "qPt": "Você prefere praia ou montanha?",
+          "answers": [
+            "I prefer the beach",
+            "I prefer the mountains",
+            "The beach",
+            "The mountains"
+          ],
+          "answerPt": "Eu prefiro a praia."
+        },
+        {
+          "q": "Did you bring sunscreen?",
+          "qPt": "Você trouxe protetor solar?",
+          "answers": [
+            "Yes I did",
+            "Yes it's in my bag",
+            "No I forgot",
+            "Oh no I forgot"
+          ],
+          "answerPt": "Sim, trouxe."
+        }
+      ],
+      "color": "#ff6b4a"
+    }
+  ],
+  "estudos": [
+    {
+      "id": "estudos-1",
+      "title": "Faculdade e provas",
+      "subtitle": "Matérias, provas e rotina de estudos",
+      "guide": [
+        "Nos EUA, 'college' serve para qualquer faculdade. 'I'm in college' significa 'estou na faculdade'. 'University' soa mais formal.",
+        "'Major' é o seu curso principal: 'What's your major?' significa 'Que curso você faz?'. Prova é 'test' ou 'exam', e 'quiz' é uma prova curtinha.",
+        "Cuidado com o TH de 'math' e 'think': ponha a ponta da língua entre os dentes e solte o ar. Não diga 'méf' nem 'tink'."
+      ],
+      "phrases": [
+        {
+          "en": "What's your major?",
+          "pt": "Qual é o seu curso?",
+          "tip": "'What's your' se junta: 'uóts-iór'"
+        },
+        {
+          "en": "I'm studying engineering.",
+          "pt": "Estou estudando engenharia.",
+          "tip": "'engineering' é forte no final: 'en-dji-NÍ-rin'"
+        },
+        {
+          "en": "I have a test tomorrow.",
+          "pt": "Tenho prova amanhã.",
+          "tip": "'test' termina com T seco: 'tést', e não 'tésti'"
+        },
+        {
+          "en": "Do you want to study together?",
+          "pt": "Quer estudar junto?",
+          "tip": "'want to' vira 'uâna'"
+        },
+        {
+          "en": "I stayed up late studying.",
+          "pt": "Fiquei acordado até tarde estudando."
+        },
+        {
+          "en": "How did your exam go?",
+          "pt": "Como foi sua prova?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "test",
+          "b": "taste",
+          "ptA": "prova",
+          "ptB": "gosto, sabor"
+        },
+        {
+          "a": "math",
+          "b": "mass",
+          "ptA": "matemática",
+          "ptB": "massa"
+        },
+        {
+          "a": "grade",
+          "b": "great",
+          "ptA": "nota",
+          "ptB": "ótimo"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What's your major?",
+          "qPt": "Qual é o seu curso?",
+          "answers": [
+            "I'm studying engineering",
+            "Engineering",
+            "I study law",
+            "I'm a business major"
+          ],
+          "answerPt": "Estou estudando engenharia."
+        },
+        {
+          "q": "When is your next exam?",
+          "qPt": "Quando é sua próxima prova?",
+          "answers": [
+            "It's tomorrow",
+            "I have a test tomorrow",
+            "Next week",
+            "On Friday"
+          ],
+          "answerPt": "É amanhã."
+        },
+        {
+          "q": "How do you usually study?",
+          "qPt": "Como você costuma estudar?",
+          "answers": [
+            "I study at the library",
+            "I study with friends",
+            "I study at night",
+            "I make notes"
+          ],
+          "answerPt": "Eu estudo na biblioteca."
+        }
+      ],
+      "color": "#5b8cff"
+    },
+    {
+      "id": "estudos-2",
+      "title": "Intercâmbio",
+      "subtitle": "Escola de idiomas, morar fora e colegas de quarto",
+      "guide": [
+        "Colega de quarto é 'roommate'. No Reino Unido, quem divide o apartamento com você também é chamado de 'flatmate'.",
+        "Para combinar regras com o roommate ou a família, use 'Is it okay if...?'. É educado e muito comum.",
+        "O H de 'house', 'home' e 'host' é aspirado, como um R de 'rato' bem suave. Não deixe o H mudo: 'house' não é 'áuss'."
+      ],
+      "phrases": [
+        {
+          "en": "I'm here on an exchange program.",
+          "pt": "Estou aqui num programa de intercâmbio.",
+          "tip": "'here on an' se liga: 'hí-rã-nã'"
+        },
+        {
+          "en": "This is my roommate.",
+          "pt": "Este é meu colega de quarto.",
+          "tip": "'roommate' soa 'rúm-mêit', com R inglês sem vibrar"
+        },
+        {
+          "en": "Which level are you in?",
+          "pt": "Em que nível você está?",
+          "tip": "'level' soa 'lévou', com o L final bem leve"
+        },
+        {
+          "en": "Is it okay if I invite friends?",
+          "pt": "Tudo bem se eu convidar amigos?",
+          "tip": "'Is it' vira 'ízit'"
+        },
+        {
+          "en": "I'm staying with a host family.",
+          "pt": "Estou ficando com uma família anfitriã."
+        },
+        {
+          "en": "I really miss home sometimes.",
+          "pt": "Às vezes sinto muita falta de casa."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "live",
+          "b": "leave",
+          "ptA": "morar",
+          "ptB": "sair, ir embora"
+        },
+        {
+          "a": "hall",
+          "b": "all",
+          "ptA": "corredor",
+          "ptB": "todos"
+        },
+        {
+          "a": "rent",
+          "b": "lent",
+          "ptA": "aluguel",
+          "ptB": "emprestou"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Where are you from?",
+          "qPt": "De onde você é?",
+          "answers": [
+            "I'm from Brazil",
+            "From Brazil",
+            "I'm Brazilian",
+            "Brazil"
+          ],
+          "answerPt": "Sou do Brasil."
+        },
+        {
+          "q": "How long are you staying here?",
+          "qPt": "Quanto tempo você vai ficar aqui?",
+          "answers": [
+            "Six months",
+            "About a year",
+            "I'm staying for three months",
+            "Just a few weeks"
+          ],
+          "answerPt": "Seis meses."
+        },
+        {
+          "q": "How do you like your roommate?",
+          "qPt": "O que você está achando do seu colega de quarto?",
+          "answers": [
+            "She's really nice",
+            "He's great",
+            "We get along well",
+            "He's a bit messy"
+          ],
+          "answerPt": "Ela é muito legal."
+        }
+      ],
+      "color": "#4ade9a"
+    }
+  ],
+  "negocios": [
+    {
+      "id": "negocios-1",
+      "title": "Dinheiro e banco",
+      "subtitle": "Conta, cartão, transferência e câmbio",
+      "guide": [
+        "Em inglês, 'account' é a conta bancária. A conta do restaurante é 'the check' ou 'the bill'.",
+        "'Fee' é a taxa cobrada pelo banco. Pergunte sempre 'Is there a fee?' antes de transferir ou trocar dinheiro.",
+        "Cuidado com o TH nos números: 'three thousand' não é 'tri tausand'. Coloque a língua entre os dentes e solte o ar."
+      ],
+      "phrases": [
+        {
+          "en": "I'd like to open an account.",
+          "pt": "Eu gostaria de abrir uma conta.",
+          "tip": "'open an account' se junta: 'ôu-pê-nã-káunt'"
+        },
+        {
+          "en": "What's the exchange rate today?",
+          "pt": "Qual é a cotação do câmbio hoje?",
+          "tip": "'exchange' soa 'iks-tchêindj', sem o 'e' no final"
+        },
+        {
+          "en": "I need to transfer some money.",
+          "pt": "Preciso transferir um dinheiro.",
+          "tip": "'need to' vira 'níi-tu', o D quase some"
+        },
+        {
+          "en": "My card isn't working.",
+          "pt": "Meu cartão não está funcionando."
+        },
+        {
+          "en": "Is there a fee for that?",
+          "pt": "Tem alguma taxa para isso?",
+          "tip": "'Is there a' vira 'iz-dhé-râ', com a língua entre os dentes no TH"
+        },
+        {
+          "en": "I'm trying to stick to a budget.",
+          "pt": "Estou tentando seguir um orçamento."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "rich",
+          "b": "reach",
+          "ptA": "rico",
+          "ptB": "alcançar"
+        },
+        {
+          "a": "cash",
+          "b": "catch",
+          "ptA": "dinheiro vivo",
+          "ptB": "pegar"
+        },
+        {
+          "a": "save",
+          "b": "safe",
+          "ptA": "economizar",
+          "ptB": "cofre / seguro"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "How can I help you today?",
+          "qPt": "Como posso ajudar hoje?",
+          "answers": [
+            "I'd like to open an account",
+            "I want to open an account",
+            "I need to open an account",
+            "I'd like to make a transfer"
+          ],
+          "answerPt": "Eu gostaria de abrir uma conta."
+        },
+        {
+          "q": "How much would you like to exchange?",
+          "qPt": "Quanto você gostaria de trocar?",
+          "answers": [
+            "Five hundred dollars please",
+            "Two hundred dollars",
+            "About three hundred dollars",
+            "One hundred please"
+          ],
+          "answerPt": "Quinhentos dólares, por favor."
+        },
+        {
+          "q": "Do you have any ID with you?",
+          "qPt": "Você está com algum documento?",
+          "answers": [
+            "Yes here's my passport",
+            "Yes I do",
+            "Here's my passport",
+            "Yes here you go"
+          ],
+          "answerPt": "Sim, aqui está meu passaporte."
+        }
+      ],
+      "color": "#ff8fb1"
+    },
+    {
+      "id": "negocios-2",
+      "title": "Negócios",
+      "subtitle": "Negociar, apresentar ideias e fechar acordo",
+      "guide": [
+        "'Deal' é acordo. Dizer 'It's a deal!' fecha o negócio. Em reuniões nos EUA, a conversa costuma ir direto ao ponto, com menos papo inicial que no Brasil.",
+        "'Pitch' é a apresentação curta de uma ideia. 'Walk you through' quer dizer explicar passo a passo.",
+        "Falso cognato: 'pretend' é fingir. Para dizer 'pretender', use 'intend' ou 'plan to'."
+      ],
+      "phrases": [
+        {
+          "en": "Let me walk you through it.",
+          "pt": "Deixa eu te explicar passo a passo.",
+          "tip": "'walk' soa 'uók', o L quase não aparece"
+        },
+        {
+          "en": "Can you meet us halfway?",
+          "pt": "Podemos chegar a um meio-termo?",
+          "tip": "'halfway' soa 'héf-uêi', com H aspirado e L mudo"
+        },
+        {
+          "en": "That's our best offer.",
+          "pt": "Essa é nossa melhor oferta.",
+          "tip": "'best offer' se junta: 'bés-tó-fâr'"
+        },
+        {
+          "en": "Let's put it in writing.",
+          "pt": "Vamos colocar isso no papel.",
+          "tip": "'put it in' vira 'pú-ri-rin', o T soa como um R rápido"
+        },
+        {
+          "en": "What are your main goals?",
+          "pt": "Quais são seus principais objetivos?"
+        },
+        {
+          "en": "It's a deal!",
+          "pt": "Fechado!"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "pitch",
+          "b": "peach",
+          "ptA": "apresentação curta",
+          "ptB": "pêssego"
+        },
+        {
+          "a": "price",
+          "b": "prize",
+          "ptA": "preço",
+          "ptB": "prêmio"
+        },
+        {
+          "a": "think",
+          "b": "sink",
+          "ptA": "pensar",
+          "ptB": "pia"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "So what's your idea?",
+          "qPt": "Então, qual é a sua ideia?",
+          "answers": [
+            "Let me walk you through it",
+            "It's an app for small businesses",
+            "We want to help small businesses",
+            "Let me show you"
+          ],
+          "answerPt": "Deixa eu te explicar passo a passo."
+        },
+        {
+          "q": "Can you lower the price a little?",
+          "qPt": "Você pode baixar um pouco o preço?",
+          "answers": [
+            "That's our best offer",
+            "Can you meet us halfway",
+            "Maybe a little",
+            "Sorry that's our best price"
+          ],
+          "answerPt": "Essa é nossa melhor oferta."
+        },
+        {
+          "q": "So do we have a deal?",
+          "qPt": "Então, temos um acordo?",
+          "answers": [
+            "Yes it's a deal",
+            "It's a deal",
+            "Yes we have a deal",
+            "Let's put it in writing"
+          ],
+          "answerPt": "Sim, fechado!"
+        }
+      ],
+      "color": "#ff9f5a"
+    }
+  ],
+  "games": [
+    {
+      "id": "games-1",
+      "title": "Jogando online",
+      "subtitle": "Gêneros, plataformas e chat de voz",
+      "guide": [
+        "Para perguntar o que alguém joga, use 'What kind of games do you play?'. Gêneros comuns: shooter (tiro), RPG, racing (corrida), puzzle (quebra-cabeça), sports (esportes).",
+        "No chat de voz, 'Can you hear me?' e 'You're on mute' são essenciais. 'Mute' se fala 'miút', com som de 'iu', não 'múte'.",
+        "O H de 'hear' e 'hit' soa como o R de 'rato' em português, só que mais suave. Não deixe o H mudo: 'hear' vira 'ear' (orelha)!"
+      ],
+      "phrases": [
+        {
+          "en": "What kind of games do you play?",
+          "pt": "Que tipo de jogo você joga?",
+          "tip": "'kind of' se junta: 'káin-dâv'"
+        },
+        {
+          "en": "I mostly play on my console.",
+          "pt": "Eu jogo mais no meu console."
+        },
+        {
+          "en": "Do you want to play online?",
+          "pt": "Quer jogar online?",
+          "tip": "'want to' vira 'wóna'"
+        },
+        {
+          "en": "Can you hear me okay?",
+          "pt": "Você está me ouvindo bem?",
+          "tip": "'hear me' soa 'rír-mi', com H aspirado como o R de 'rato'"
+        },
+        {
+          "en": "I think you're on mute.",
+          "pt": "Acho que você está no mudo.",
+          "tip": "'mute' soa 'miút'"
+        },
+        {
+          "en": "My connection is really laggy.",
+          "pt": "Minha conexão está travando muito.",
+          "tip": "'laggy' soa 'lé-gui'"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "play",
+          "b": "pray",
+          "ptA": "jogar",
+          "ptB": "rezar"
+        },
+        {
+          "a": "three",
+          "b": "free",
+          "ptA": "três",
+          "ptB": "grátis"
+        },
+        {
+          "a": "hit",
+          "b": "heat",
+          "ptA": "acertar",
+          "ptB": "calor"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "What kind of games do you like?",
+          "qPt": "De que tipo de jogo você gosta?",
+          "answers": [
+            "I like shooters",
+            "I like RPGs",
+            "Mostly racing games",
+            "I play a lot of puzzle games"
+          ],
+          "answerPt": "Eu gosto de jogos de tiro."
+        },
+        {
+          "q": "Do you play on PC or console?",
+          "qPt": "Você joga no PC ou no console?",
+          "answers": [
+            "I play on PC",
+            "Mostly console",
+            "Both",
+            "I play on my phone"
+          ],
+          "answerPt": "Eu jogo no PC."
+        },
+        {
+          "q": "Can you hear me?",
+          "qPt": "Você está me ouvindo?",
+          "answers": [
+            "Yes I can hear you",
+            "Yeah loud and clear",
+            "No you're on mute",
+            "Not really you're breaking up"
+          ],
+          "answerPt": "Sim, consigo te ouvir."
+        }
+      ],
+      "color": "#3dd6c6"
+    },
+    {
+      "id": "games-2",
+      "title": "Comunidade gamer",
+      "subtitle": "Streams, torneios e trabalho em equipe",
+      "guide": [
+        "'GG' (good game) se fala 'dji-dji' e é dito no fim da partida, ganhando ou perdendo. É sinal de respeito e espírito esportivo.",
+        "Gírias comuns: 'clutch' (decidir a jogada sozinho no final), 'carry' (levar o time nas costas), 'noob' (iniciante). Cuidado: chamar alguém de 'noob' pode soar ofensivo.",
+        "Em 'played' e 'joined', o -ed não vira sílaba: 'plêid', 'djóind'. Ele só vira 'id' depois de T ou D, como em 'started' ('stár-tid')."
+      ],
+      "phrases": [
+        {
+          "en": "Good game, well played!",
+          "pt": "Boa partida, jogou bem!",
+          "tip": "'well played' soa 'uél-plêid', sem sílaba extra no -ed"
+        },
+        {
+          "en": "Are you streaming tonight?",
+          "pt": "Você vai fazer live hoje à noite?",
+          "tip": "'streaming' soa 'strí-min', sem 'i' antes do S"
+        },
+        {
+          "en": "Cover me, I'm going in.",
+          "pt": "Me dá cobertura, vou entrar."
+        },
+        {
+          "en": "We need to work together.",
+          "pt": "A gente precisa trabalhar em equipe.",
+          "tip": "'need to' se junta com um D só: 'níd-tu'"
+        },
+        {
+          "en": "That was an amazing clutch!",
+          "pt": "Que virada incrível no final!"
+        },
+        {
+          "en": "Our team signed up for the tournament.",
+          "pt": "Nosso time se inscreveu no torneio.",
+          "tip": "'tournament' soa 'târ-na-ment'"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "lose",
+          "b": "loose",
+          "ptA": "perder",
+          "ptB": "solto"
+        },
+        {
+          "a": "win",
+          "b": "wing",
+          "ptA": "vencer",
+          "ptB": "asa"
+        },
+        {
+          "a": "live",
+          "b": "leave",
+          "ptA": "viver",
+          "ptB": "sair"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Do you watch any streamers?",
+          "qPt": "Você assiste algum streamer?",
+          "answers": [
+            "Yes I watch a few",
+            "Yeah all the time",
+            "Sometimes",
+            "Not really"
+          ],
+          "answerPt": "Sim, eu assisto alguns."
+        },
+        {
+          "q": "Want to join our team for the tournament?",
+          "qPt": "Quer entrar no nosso time para o torneio?",
+          "answers": [
+            "Sure I'm in",
+            "Yes count me in",
+            "Sorry I can't",
+            "Maybe next time"
+          ],
+          "answerPt": "Claro, tô dentro."
+        },
+        {
+          "q": "Good game! Want to play again?",
+          "qPt": "Boa partida! Quer jogar de novo?",
+          "answers": [
+            "Yeah one more match",
+            "Sure let's play again",
+            "Good game but I have to go",
+            "Not today thanks"
+          ],
+          "answerPt": "Sim, mais uma partida."
+        }
+      ],
+      "color": "#b58cff"
+    }
+  ],
+  "social": [
+    {
+      "id": "social-1",
+      "title": "Fazer amigos",
+      "subtitle": "Se apresentar, convidar e combinar um encontro",
+      "guide": [
+        "Ao conhecer alguém, diga 'Nice to meet you'. Na hora de se despedir dessa pessoa, troque por 'Nice meeting you'.",
+        "'Hang out' é o jeito natural de dizer 'sair junto, passar um tempo'. 'Do you want to hang out?' é um convite leve e amigável.",
+        "Cuidado com o TH de 'three': a língua fica entre os dentes. Se você falar 'free', o americano entende 'livre', não 'três'."
+      ],
+      "phrases": [
+        {
+          "en": "Hi, I'm Lucas. Nice to meet you.",
+          "pt": "Oi, eu sou o Lucas. Prazer em te conhecer.",
+          "tip": "'meet you' se junta: 'mí-tchu'"
+        },
+        {
+          "en": "Do you want to hang out?",
+          "pt": "Quer sair um dia desses?",
+          "tip": "'want to' vira 'uâna' na fala rápida"
+        },
+        {
+          "en": "Are you free on Saturday?",
+          "pt": "Você está livre no sábado?",
+          "tip": "No inglês americano o T de 'Saturday' vira um R rápido: 'sé-rer-dei'"
+        },
+        {
+          "en": "What time works for you?",
+          "pt": "Que horário é bom para você?"
+        },
+        {
+          "en": "Let's meet at the station.",
+          "pt": "Vamos nos encontrar na estação.",
+          "tip": "'Let's' termina com 'ts' bem curto, sem 'i' no final: 'léts', não 'létsi'"
+        },
+        {
+          "en": "Can I get your number?",
+          "pt": "Posso pegar seu número?"
+        }
+      ],
+      "pairs": [
+        {
+          "a": "live",
+          "b": "leave",
+          "ptA": "morar",
+          "ptB": "ir embora"
+        },
+        {
+          "a": "free",
+          "b": "three",
+          "ptA": "livre",
+          "ptB": "três"
+        },
+        {
+          "a": "date",
+          "b": "day",
+          "ptA": "encontro, data",
+          "ptB": "dia"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "Where are you from?",
+          "qPt": "De onde você é?",
+          "answers": [
+            "I'm from Brazil",
+            "I'm Brazilian",
+            "Brazil",
+            "I'm from Brazil and you"
+          ],
+          "answerPt": "Eu sou do Brasil."
+        },
+        {
+          "q": "Do you want to hang out this weekend?",
+          "qPt": "Quer sair neste fim de semana?",
+          "answers": [
+            "Sure sounds good",
+            "Yes I'd love to",
+            "Sure what time",
+            "Sorry I'm busy this weekend"
+          ],
+          "answerPt": "Claro, parece ótimo."
+        },
+        {
+          "q": "What time works for you?",
+          "qPt": "Que horário é bom para você?",
+          "answers": [
+            "Six works for me",
+            "How about six",
+            "Around seven",
+            "Any time after five"
+          ],
+          "answerPt": "Seis horas está bom para mim."
+        }
+      ],
+      "color": "#5b8cff"
+    },
+    {
+      "id": "social-2",
+      "title": "Vida social",
+      "subtitle": "Festas, bares, conversa fiada e despedidas",
+      "guide": [
+        "Em festas, a pergunta clássica para puxar papo é 'How do you know the host?' (de onde você conhece o anfitrião?). Também funcionam o clima e os planos do fim de semana.",
+        "Para ir embora com educação, diga 'I should get going' ou 'It was great talking to you'. Sair sem falar nada pode parecer frio.",
+        "No inglês americano, o T entre vogais vira um R rápido: 'party' soa 'pá-ri' e 'water' soa 'uó-rer'."
+      ],
+      "phrases": [
+        {
+          "en": "How do you know the host?",
+          "pt": "De onde você conhece o anfitrião?",
+          "tip": "'the' tem TH: ponha a língua entre os dentes, 'dhe', e não 'de'"
+        },
+        {
+          "en": "Can I get you a drink?",
+          "pt": "Posso te trazer uma bebida?",
+          "tip": "'drink' termina num 'k' seco, sem 'i' no final: 'drink', e não 'drinqui'"
+        },
+        {
+          "en": "So, what do you do?",
+          "pt": "E aí, você trabalha com o quê?",
+          "tip": "'what do you' vira 'uá-da-iú' na fala rápida"
+        },
+        {
+          "en": "This place is really nice.",
+          "pt": "Este lugar é muito legal."
+        },
+        {
+          "en": "It was great talking to you.",
+          "pt": "Foi ótimo conversar com você.",
+          "tip": "O T de 'great' quase some: 'grêi-tókin'"
+        },
+        {
+          "en": "I should get going.",
+          "pt": "Eu preciso ir andando."
+        }
+      ],
+      "pairs": [
+        {
+          "a": "hi",
+          "b": "I",
+          "ptA": "oi",
+          "ptB": "eu"
+        },
+        {
+          "a": "fun",
+          "b": "fan",
+          "ptA": "diversão",
+          "ptB": "fã"
+        },
+        {
+          "a": "work",
+          "b": "walk",
+          "ptA": "trabalhar",
+          "ptB": "caminhar"
+        }
+      ],
+      "exchanges": [
+        {
+          "q": "How do you know the host?",
+          "qPt": "De onde você conhece o anfitrião?",
+          "answers": [
+            "We work together",
+            "We're friends from school",
+            "She's my neighbor",
+            "We met at work"
+          ],
+          "answerPt": "A gente trabalha junto."
+        },
+        {
+          "q": "Are you having fun?",
+          "qPt": "Você está se divertindo?",
+          "answers": [
+            "Yes it's a great party",
+            "Yeah I'm having a great time",
+            "Yes a lot",
+            "Yeah this is fun"
+          ],
+          "answerPt": "Sim, a festa está ótima."
+        },
+        {
+          "q": "Leaving already?",
+          "qPt": "Já vai embora?",
+          "answers": [
+            "Yeah I should get going",
+            "Yes I have to work tomorrow",
+            "Yeah it's getting late",
+            "Yes it was great to see you"
+          ],
+          "answerPt": "É, eu preciso ir andando."
+        }
+      ],
+      "color": "#4ade9a"
+    }
+  ]
+}

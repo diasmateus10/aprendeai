@@ -23,7 +23,7 @@ import {
 import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
 import { openPortal, type Subscription } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
-import { lessons, units, type Lesson, type Unit } from "../data/course";
+import type { Lesson, Unit } from "../data/course";
 import { levelInfo } from "../data/levels";
 import { dayKey, displayStreak, GOALS, todayXp, type Progress } from "../lib/progress";
 import { sttSupported } from "../lib/speech";
@@ -36,6 +36,11 @@ const WEEKDAYS = ["D", "S", "T", "Q", "Q", "S", "S"];
 export interface HomeProps {
   progress: Progress;
   email: string;
+  /** The learner's path (units in order) and its lessons. */
+  path: Unit[];
+  lessons: Lesson[];
+  /** Opens the theme picker. */
+  onThemes(): void;
   /** Index in `lessons` of the next lesson to do, or -1 when the course is done. */
   currentIndex: number;
   isUnlocked(lessonIndex: number): boolean;
@@ -126,7 +131,7 @@ function ContinueCard(props: HomeProps) {
   return <LessonCard {...props} />;
 }
 
-function LessonCard({ progress, currentIndex, onLesson, planLocked, onUpgrade }: HomeProps) {
+function LessonCard({ progress, path, lessons, currentIndex, onLesson, planLocked, onUpgrade }: HomeProps) {
   if (currentIndex < 0) {
     return (
       <section className="card continue-card done">
@@ -137,8 +142,8 @@ function LessonCard({ progress, currentIndex, onLesson, planLocked, onUpgrade }:
     );
   }
   const lesson = lessons[currentIndex];
-  const unitIndex = units.findIndex((u) => u.id === lesson.unitId);
-  const unit = units[unitIndex];
+  const unitIndex = path.findIndex((u) => u.id === lesson.unitId);
+  const unit = path[unitIndex];
   const unitLessons = lessons.filter((l) => l.unitId === unit.id);
   const done = unitLessons.filter((l) => progress.completed[l.id] !== undefined).length;
   return (
@@ -267,8 +272,8 @@ function GoalCard({ progress, onGoal }: { progress: Progress; onGoal(xp: number)
   );
 }
 
-function Activities({ currentIndex, dueCards, onChat, onFlashcards, onGuide }: HomeProps) {
-  const unit = currentIndex >= 0 ? units.find((u) => u.id === lessons[currentIndex].unitId)! : units[units.length - 1];
+function Activities({ path, lessons, currentIndex, dueCards, onChat, onFlashcards, onGuide }: HomeProps) {
+  const unit = currentIndex >= 0 ? path.find((u) => u.id === lessons[currentIndex].unitId)! : path[path.length - 1];
   return (
     <section className="activities" aria-label="Praticar">
       <button className="activity feature" onClick={onChat}>
@@ -295,11 +300,28 @@ function Activities({ currentIndex, dueCards, onChat, onFlashcards, onGuide }: H
   );
 }
 
-function Course({ progress, currentIndex, isUnlocked, planLocked, onLesson, onGuide, onUpgrade }: HomeProps) {
+function Course({ progress, path, lessons, currentIndex, isUnlocked, planLocked, onLesson, onGuide, onUpgrade, onThemes }: HomeProps) {
   return (
     <section className="course" aria-label="Seu curso">
-      <h2 className="section-title">Seu curso</h2>
-      {units.map((u, ui) => {
+      <div className="course-head">
+        <h2 className="section-title">Sua trilha</h2>
+        {progress.themes && (
+          <button className="link" onClick={onThemes}>
+            Trocar temas
+          </button>
+        )}
+      </div>
+      {!progress.themes && (
+        <button className="activity feature theme-prompt" onClick={onThemes}>
+          <PencilSimple size={26} weight="duotone" className="coral" />
+          <span className="activity-text">
+            <strong>Personalize sua trilha</strong>
+            <span>Escolha 5 assuntos que você gosta e as lições passam a usar frases desses temas.</span>
+          </span>
+          <CaretRight size={20} weight="bold" />
+        </button>
+      )}
+      {path.map((u, ui) => {
         const unitLessons = lessons.filter((l) => l.unitId === u.id);
         // Chapters not reached yet stay compact so the course doesn't become a long wall of locks.
         const locked = !isUnlocked(lessons.indexOf(unitLessons[0]));

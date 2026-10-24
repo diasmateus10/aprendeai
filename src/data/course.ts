@@ -287,17 +287,6 @@ export const units: Unit[] = [
   },
 ];
 
-// Each unit has the same three steps; the screen pairs each with an icon.
-const focuses: { focus: Lesson["focus"]; title: string }[] = [
-  { focus: "escuta", title: "Ouvir" },
-  { focus: "fala", title: "Falar" },
-  { focus: "conversa", title: "Conversar" },
-];
-
-export const lessons: Lesson[] = units.flatMap((u) =>
-  focuses.map((f) => ({ id: `${u.id}-${f.focus}`, unitId: u.id, title: f.title, focus: f.focus })),
-);
-
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
   for (let i = a.length - 1; i > 0; i--) {
@@ -316,9 +305,10 @@ function pairEx(pair: MinimalPair): Exercise {
   return { kind: "minimal_pair", pair, play: Math.random() < 0.5 ? "a" : "b" };
 }
 
-export function buildLesson(lesson: Lesson): Exercise[] {
-  const unit = units.find((u) => u.id === lesson.unitId)!;
-  const allPhrases = units.flatMap((u) => u.phrases);
+/** `pool`: every unit a lesson can come from (the path's units), for the wrong options. */
+export function buildLesson(lesson: Lesson, pool: Unit[]): Exercise[] {
+  const unit = pool.find((u) => u.id === lesson.unitId)!;
+  const allPhrases = pool.flatMap((u) => u.phrases);
   const ph = shuffle(unit.phrases);
   const pairs = shuffle(unit.pairs);
 

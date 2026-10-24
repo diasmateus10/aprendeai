@@ -3148,3 +3148,58 @@ button:disabled {
 .legal-links a {
   color: inherit;
 }
+
+/* Theme picker of the personalized path */
+
+.theme-page {
+  padding-bottom: 96px;
+}
+
+.theme-choice:first-child {
+  grid-column: auto;
+  border-color: transparent;
+}
+
+.theme-choice.on {
+  border-color: var(--primary);
+}
+
+.theme-choice:disabled {
+  opacity: 0.45;
+}
+
+.theme-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--surface-2);
+  color: var(--primary);
+}
+
+.theme-choice.on .theme-icon {
+  background: var(--primary);
+  color: #fff;
+}
+
+.theme-actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+  background: linear-gradient(transparent, var(--bg) 35%);
+}
+
+.theme-actions .btn {
+  max-width: 608px;
+  margin: 0 auto;
+}
+
+.course-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}

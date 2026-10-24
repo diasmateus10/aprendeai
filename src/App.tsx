@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, Baby, SpeakerHigh, User } from "@phosphor-icons/react";
-import { lessons, units, type Lesson as LessonT, type Unit } from "./data/course";
+import type { Lesson as LessonT, Unit } from "./data/course";
+import { lessonsFor, pathUnits } from "./data/themes";
 import { levelInfo, levels } from "./data/levels";
 import { Lesson, type LessonResult } from "./components/Lesson";
 import { Placement } from "./components/Placement";
@@ -8,6 +9,7 @@ import { deckFor, Flashcards, sessionCards, type Card } from "./components/Flash
 import { Conversation, TopicPicker } from "./components/Conversation";
 import { KidsApp } from "./components/Kids";
 import { Home } from "./components/Home";
+import { ThemePicker } from "./components/ThemePicker";
 import { CenterScreen, IconButton, SoundButtons } from "./components/ui";
 import { reportStudy } from "./lib/push";
 import { AuthScreen, NewPasswordScreen } from "./components/Auth";
@@ -46,6 +48,7 @@ type Screen =
   | { name: "topics" }
   | { name: "chat"; topic: Topic }
   | { name: "path" }
+  | { name: "themes" }
   | { name: "guide"; unit: Unit }
   | { name: "lesson"; lesson: LessonT }
   | { name: "result"; lesson: LessonT; result: LessonResult; xp: number };
@@ -136,12 +139,18 @@ export default function App() {
   setVoiceKind(progress.mode === "kids" ? "kids" : "adult");
 
   const level = levelInfo(progress.level);
-  const startLesson = lessons.findIndex((l) => l.unitId === units[level.startUnit].id);
-  // Units before the placement start stay open for review; from there on, lessons unlock in order.
+  // The learner's path: pronunciation units alternating with the units of the themes they picked.
+  const path = pathUnits(progress.themes);
+  const lessons = lessonsFor(path);
+  const startLesson = lessons.findIndex((l) => l.unitId === level.startUnit);
+  // Units before the placement start stay open for review; from there on, lessons unlock in order
+  // (a lesson already done stays open, e.g. after the themes change).
   const isUnlocked = (lessonIndex: number) =>
-    lessonIndex <= startLesson || progress.completed[lessons[lessonIndex - 1].id] !== undefined;
+    lessonIndex <= startLesson ||
+    progress.completed[lessons[lessonIndex].id] !== undefined ||
+    progress.completed[lessons[lessonIndex - 1].id] !== undefined;
   /** The free plan covers the first FREE_UNITS units; the rest of the course needs Premium. */
-  const planLocked = (lessonIndex: number) => !premium && units.findIndex((u) => u.id === lessons[lessonIndex].unitId) >= FREE_UNITS;
+  const planLocked = (lessonIndex: number) => !premium && path.findIndex((u) => u.id === lessons[lessonIndex].unitId) >= FREE_UNITS;
   const currentIndex = lessons.findIndex((l, i) => i >= startLesson && isUnlocked(i) && progress.completed[l.id] === undefined);
   const deck = deckFor(progress.level);
   const dueCards = sessionCards(deck, progress.cards);
@@ -263,7 +272,7 @@ export default function App() {
 
   if (screen.name === "placed") {
     const info = levelInfo(screen.level);
-    const unit = units[info.startUnit];
+    const unit = path.find((u) => u.id === info.startUnit)!;
     return (
       <CenterScreen mood="happy">
         <span className="eyebrow">Seu nível</span>
@@ -277,20 +286,33 @@ export default function App() {
         </div>
         <p>{info.description}</p>
         <p className="hint">
-          Você começa em <strong>“{unit.title}”</strong>.{info.startUnit > 0 ? " As unidades anteriores ficam abertas para revisão." : ""}
+          Você começa em <strong>“{unit.title}”</strong>.{info.startUnit !== path[0].id ? " As unidades anteriores ficam abertas para revisão." : ""}
         </p>
         <div className="result-actions">
           <button
             className="btn primary lg"
             onClick={() => {
               update({ ...progress, level: screen.level });
-              setScreen({ name: "path" });
+              setScreen(progress.themes ? { name: "path" } : { name: "themes" });
             }}
           >
             Começar
           </button>
         </div>
       </CenterScreen>
+    );
+  }
+
+  if (screen.name === "themes") {
+    return (
+      <ThemePicker
+        initial={progress.themes}
+        onExit={progress.themes ? () => setScreen({ name: "path" }) : undefined}
+        onDone={(themes) => {
+          update({ ...progress, themes });
+          setScreen({ name: "path" });
+        }}
+      />
     );
   }
 
@@ -462,6 +484,9 @@ export default function App() {
     <Home
       progress={progress}
       email={session.user.email ?? ""}
+      path={path}
+      lessons={lessons}
+      onThemes={() => setScreen({ name: "themes" })}
       currentIndex={currentIndex}
       isUnlocked={isUnlocked}
       planLocked={planLocked}
