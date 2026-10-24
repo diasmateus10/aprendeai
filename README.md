@@ -37,6 +37,8 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **Gamificação:** XP, sequência de dias, meta diária com anel de progresso, semana em bolinhas, vidas e estrelas por lição.
 - **Voz natural:** o app escolhe a voz mais natural disponível no aparelho e permite trocar, com prévia.
 - **Mobile first:** layout pensado para celular e publicado com HTTPS, o que permite usar o microfone.
+- **Premium (Stripe):** R$ 19,90/mês ou R$ 149/ano, com 7 dias grátis na primeira assinatura. O plano grátis inclui a Unidade 1, 1 conversa com IA por dia e 2 rimas no Kids. O Premium libera o curso inteiro, 30 minutos de conversa por dia (contados por minuto ativo) e o Kids completo. Os limites são aplicados no servidor. A assinatura é espelhada do Stripe no Supabase por webhook, e o portal do cliente permite trocar de plano ou cancelar.
+- **Hábito diário:** 10 palavras novas nos flashcards (com fotos reais do Pixabay) e depois a lição da trilha.
 - **Conta com e-mail e senha:** o progresso fica salvo na conta e aparece em qualquer aparelho. No primeiro login, o progresso que já estava no aparelho vai para a conta. Dá para recuperar a senha por e-mail.
 - **Lembrete diário da ofensiva:** quem ativa recebe uma notificação às 19h nos dias em que ainda não estudou ("🔥 Sua ofensiva de 5 dias está em risco!"). No iPhone, o app precisa estar na Tela de Início. Os dados ficam no Supabase (só o endereço da notificação e o último dia de estudo), e uma tarefa diária da Vercel envia os avisos.
 
