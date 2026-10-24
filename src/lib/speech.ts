@@ -541,10 +541,13 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   // and keep the audio busy, so the mic records silence: clear it and give the audio a moment.
   const synth = ttsSupported ? window.speechSynthesis : null;
   const sinceSpeech = Date.now() - quietSince;
-  if (synth && (synth.speaking || synth.pending)) {
-    synth.cancel();
-    later(begin, AFTER_SPEECH_MS);
-  } else if (sinceSpeech < AFTER_SPEECH_MS) later(begin, AFTER_SPEECH_MS - sinceSpeech);
+  const wasSpeaking = !!synth && (synth.speaking || synth.pending);
+  if (wasSpeaking) synth.cancel();
+  // The iPhone only opens the mic for a start() made inside the tap: delayed even 300 ms it silently never
+  // starts, and since iOS can report speaking=true long after the voice stopped, every tap failed that way.
+  if (isIOS) begin();
+  else if (wasSpeaking) later(begin, AFTER_SPEECH_MS);
+  else if (sinceSpeech < AFTER_SPEECH_MS) later(begin, AFTER_SPEECH_MS - sinceSpeech);
   else begin();
   return {
     stop,
