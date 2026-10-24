@@ -1,5 +1,5 @@
 // Daily study reminders: devices subscribe to Web Push, the app reports each study day, and a daily
-// cron (vercel.json) notifies everyone who hasn't studied yet that day, mentioning their streak.
+// job (trigger/reminders.ts, on Trigger.dev) notifies everyone who hasn't studied yet that day, mentioning their streak.
 // Devices of signed-in learners are linked to the account, for notices about it (sendToUser).
 
 import type { IncomingMessage, ServerResponse } from "node:http";

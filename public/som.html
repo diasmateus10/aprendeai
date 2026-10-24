@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Teste de som · AprendeAI</title>
+    <link rel="stylesheet" href="/legal.css" />
+    <style>
+      button { display: block; width: 100%; margin: 10px 0; padding: 14px; font-size: 16px; border-radius: 12px; border: 1px solid #888; background: #f4f4f4; color: #111; text-align: left; }
+      .r { font-size: 14px; margin: -4px 0 12px 4px; opacity: 0.8; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <a class="brand" href="/">AprendeAI</a>
+      <h1>Teste de som</h1>
+      <p>Ligue o <strong>modo silencioso</strong>, aumente o volume e toque em cada botão, um de cada vez. Anote quais tocaram.</p>
+      <p class="r" id="info"></p>
+      <div id="tests"></div>
+    </main>
+    <script>
+      // Diagnostic page: which way of playing a sound works with the iPhone's silent switch on.
+      const RATE = 22050;
+      function wav() {
+        const n = Math.floor(RATE * 0.5);
+        const d = new DataView(new ArrayBuffer(44 + n * 2));
+        const t = (o, s) => [...s].forEach((c, i) => d.setUint8(o + i, c.charCodeAt(0)));
+        t(0, "RIFF"); d.setUint32(4, 36 + n * 2, true); t(8, "WAVEfmt ");
+        d.setUint32(16, 16, true); d.setUint16(20, 1, true); d.setUint16(22, 1, true);
+        d.setUint32(24, RATE, true); d.setUint32(28, RATE * 2, true); d.setUint16(32, 2, true); d.setUint16(34, 16, true);
+        t(36, "data"); d.setUint32(40, n * 2, true);
+        for (let i = 0; i < n; i++) d.setInt16(44 + i * 2, Math.sin((2 * Math.PI * 880 * i) / RATE) * Math.exp((-4 * i) / n) * 0.6 * 0x7fff, true);
+        return URL.createObjectURL(new Blob([d], { type: "audio/wav" }));
+      }
+      const url = wav();
+      const session = (type) => { try { if (navigator.audioSession) navigator.audioSession.type = type; } catch (e) {} };
+      const info = () => (document.getElementById("info").textContent = `audioSession: ${navigator.audioSession ? navigator.audioSession.type : "não existe"} · ${navigator.userAgent.match(/OS [\d_]+/)?.[0] ?? ""}`);
+
+      const viaElement = () => { const a = new Audio(url); return a.play().then(() => "tocou (sem erro)"); };
+      const viaWebAudio = () => {
+        const C = window.AudioContext || window.webkitAudioContext;
+        const c = new C();
+        const o = c.createOscillator(); const g = c.createGain();
+        o.frequency.value = 660; g.gain.value = 0.3; o.connect(g).connect(c.destination);
+        o.start(); o.stop(c.currentTime + 0.4);
+        return c.resume().then(() => `estado: ${c.state}`);
+      };
+      const viaVoice = () => { const u = new SpeechSynthesisUtterance("Hello! Testing the sound."); u.lang = "en-US"; speechSynthesis.speak(u); return Promise.resolve("enviado"); };
+
+      const tests = [
+        ["1. Áudio (elemento <audio>), modo automático", () => { session("auto"); return viaElement(); }],
+        ["2. Áudio (elemento <audio>), modo playback", () => { session("playback"); return viaElement(); }],
+        ["3. Web Audio, modo automático", () => { session("auto"); return viaWebAudio(); }],
+        ["4. Web Audio, modo playback", () => { session("playback"); return viaWebAudio(); }],
+        ["5. Voz do aparelho (Hello!)", () => { session("playback"); return viaVoice(); }],
+      ];
+      const box = document.getElementById("tests");
+      for (const [label, run] of tests) {
+        const b = document.createElement("button"); b.textContent = label;
+        const r = document.createElement("p"); r.className = "r";
+        b.onclick = () => { r.textContent = "…"; run().then((m) => (r.textContent = m), (e) => (r.textContent = "erro: " + e.name)).finally(info); };
+        box.append(b, r);
+      }
+      info();
+    </script>
+  </body>
+</html>
