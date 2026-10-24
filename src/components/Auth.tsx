@@ -44,12 +44,20 @@ function PasswordField({
 }
 
 /** Sign in or create an account (e-mail and password). Progress already on this device goes to the account. */
+/** A failed Google sign-in comes back with "error" in the URL instead of a session: say so, then clean the URL. */
+function oauthError(): string | null {
+  const params = new URLSearchParams(location.search + "&" + location.hash.slice(1));
+  if (!params.get("error")) return null;
+  history.replaceState(null, "", location.pathname);
+  return "Não foi possível entrar com o Google agora. Tente de novo ou entre com e-mail e senha.";
+}
+
 export function AuthScreen() {
   const [tab, setTab] = useState<Tab>("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(oauthError);
   const [info, setInfo] = useState<string | null>(null);
 
   const submit = async (e: FormEvent) => {
