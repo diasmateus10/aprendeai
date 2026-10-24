@@ -27,12 +27,15 @@ export async function userFromRequest(req: { headers: Record<string, string | st
   return error ? null : data.user;
 }
 
-/** True while the account's subscription is trialing or paid (see PREMIUM_STATUSES). */
+/** True while the account's subscription is trialing or paid (see PREMIUM_STATUSES), or Premium was given for free. */
 export async function isPremium(userId: string): Promise<boolean> {
   const supabase = db();
   if (!supabase) return false;
-  const { data } = await supabase.from("subscriptions").select("status").eq("user_id", userId).maybeSingle();
-  return PREMIUM_STATUSES.includes(data?.status ?? "");
+  const [sub, grant] = await Promise.all([
+    supabase.from("subscriptions").select("status").eq("user_id", userId).maybeSingle(),
+    supabase.from("premium_grants").select("user_id").eq("user_id", userId).maybeSingle(),
+  ]);
+  return !!grant.data || PREMIUM_STATUSES.includes(sub.data?.status ?? "");
 }
 
 // In-memory fallback: good enough for one dev server, best effort on serverless.

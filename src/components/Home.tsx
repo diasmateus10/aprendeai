@@ -42,6 +42,8 @@ export interface HomeProps {
   /** Reachable in the course but outside the free plan. */
   planLocked(lessonIndex: number): boolean;
   subscription: Subscription | null;
+  /** Premium given for free: no subscription to manage. */
+  granted: boolean;
   /** Opens the plans screen, saying why. */
   onUpgrade(reason: string): void;
   /** null when the learner's level has no flashcards. */
@@ -380,7 +382,7 @@ function Course({ progress, currentIndex, isUnlocked, planLocked, onLesson, onGu
   );
 }
 
-function AccountMenu({ progress, email, subscription, onPlacement, onKids, onSignOut, onUpgrade, onClose }: HomeProps & { onClose(): void }) {
+function AccountMenu({ progress, email, subscription, granted, onPlacement, onKids, onSignOut, onUpgrade, onClose }: HomeProps & { onClose(): void }) {
   const level = levelInfo(progress.level);
   const [portalError, setPortalError] = useState<string | null>(null);
   const premium = PREMIUM_STATUSES.includes(subscription?.status ?? "");
@@ -399,7 +401,15 @@ function AccountMenu({ progress, email, subscription, onPlacement, onKids, onSig
           </IconButton>
         </header>
 
-        {premium ? (
+        {granted && !premium ? (
+          <div className="menu-item">
+            <Crown size={22} weight="fill" className="gold" />
+            <span>
+              <strong>Premium (cortesia)</strong>
+              <span className="hint">Acesso completo liberado, sem cobrança</span>
+            </span>
+          </div>
+        ) : premium ? (
           <button
             className="menu-item"
             onClick={async () => setPortalError((await openPortal()) || null)}

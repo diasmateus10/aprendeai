@@ -123,6 +123,12 @@ export async function loadSubscription(userId: string): Promise<Subscription | n
   return data;
 }
 
+/** Premium given without payment (premium_grants), checked alongside the subscription. */
+export async function hasPremiumGrant(userId: string): Promise<boolean> {
+  const { data } = await supabase.from("premium_grants").select("user_id").eq("user_id", userId).maybeSingle();
+  return !!data;
+}
+
 async function billing(action: "checkout" | "portal" | "sync", body?: unknown): Promise<Response> {
   return fetch(`/api/billing/${action}`, {
     method: "POST",

@@ -11,7 +11,17 @@ import { Home } from "./components/Home";
 import { CenterScreen, IconButton, SoundButtons } from "./components/ui";
 import { reportStudy } from "./lib/push";
 import { AuthScreen, NewPasswordScreen } from "./components/Auth";
-import { loadRemote, loadSubscription, saveRemote, signOut, supabase, syncBilling, type Session, type Subscription } from "./lib/account";
+import {
+  hasPremiumGrant,
+  loadRemote,
+  loadSubscription,
+  saveRemote,
+  signOut,
+  supabase,
+  syncBilling,
+  type Session,
+  type Subscription,
+} from "./lib/account";
 import { Pricing } from "./components/Pricing";
 import { FREE_UNITS, PREMIUM_STATUSES } from "./data/plans";
 import type { Topic } from "./data/topics";
@@ -56,7 +66,9 @@ export default function App() {
   const [paywall, setPaywall] = useState<string | null>(null);
   /** Back from Stripe Checkout with a new subscription. */
   const [welcomePremium, setWelcomePremium] = useState(false);
-  const premium = PREMIUM_STATUSES.includes(subscription?.status ?? "");
+  /** Premium given for free (no Stripe subscription behind it). */
+  const [granted, setGranted] = useState(false);
+  const premium = granted || PREMIUM_STATUSES.includes(subscription?.status ?? "");
 
   const update = (p: Progress) => {
     setProgress(p);
@@ -92,6 +104,7 @@ export default function App() {
       }
       if (params.has("checkout")) history.replaceState(null, "", location.pathname);
       setSubscription(await loadSubscription(userId).catch(() => null));
+      setGranted(await hasPremiumGrant(userId).catch(() => false));
       if (cancelled) return;
       onProgressSaved((next) => saveRemote(userId, next));
       saveProgress(p);
@@ -110,6 +123,7 @@ export default function App() {
 
   const logout = async () => {
     setSubscription(null);
+    setGranted(false);
     await signOut();
     onProgressSaved(null);
     setProgress(clearLocalProgress());
@@ -452,6 +466,7 @@ export default function App() {
       isUnlocked={isUnlocked}
       planLocked={planLocked}
       subscription={subscription}
+      granted={granted}
       onUpgrade={setPaywall}
       dueCards={level.flashcards ? dueCards.length : null}
       onLesson={(l) => setScreen({ name: "lesson", lesson: l })}
