@@ -542,6 +542,7 @@ export function Conversation({
               <input
                 value={draft}
                 placeholder="Digite em inglês…"
+                aria-label="Sua resposta em inglês"
                 onChange={(e) => setDraft(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && submit(draft)}
               />

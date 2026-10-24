@@ -374,6 +374,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
             <input
               value={typed}
               placeholder={sttSupported ? "ou digite em inglês…" : "Digite em inglês…"}
+              aria-label="A palavra em inglês"
               onChange={(e) => setTyped(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key !== "Enter") return;

@@ -6,6 +6,8 @@
   --surface: #1e1a17;
   --surface-2: #2a2420;
   --border: #3a332d;
+  /* Text fields need a 3:1 edge against the surface to be found (WCAG 1.4.11); --border is only 1.4:1. */
+  --border-input: #7a6e63;
   --text: #f6efe6;
   --muted: #a89c90;
   --primary: #ff6b4a;
@@ -1269,7 +1271,7 @@ button:disabled {
   flex: 1;
   min-width: 0;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-input);
   border-radius: 999px;
   padding: 12px 16px;
   color: var(--text);
@@ -1393,7 +1395,7 @@ button:disabled {
   flex: 1;
   min-width: 0;
   background: var(--surface);
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-input);
   border-radius: 999px;
   padding: 11px 16px;
   color: var(--text);
@@ -1924,7 +1926,7 @@ button:disabled {
   width: 140px;
   padding: 10px;
   border-radius: 14px;
-  border: 2px solid var(--border);
+  border: 2px solid var(--border-input);
   background: var(--surface);
   color: var(--text);
 }
@@ -2116,7 +2118,7 @@ button:disabled {
   width: 100%;
   padding: 13px 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-input);
   background: var(--bg);
   color: var(--text);
 }
@@ -3042,7 +3044,7 @@ button:disabled {
 
 .kids .premium-tag {
   background: #fff1cc;
-  color: #a86b00;
+  color: #8a5600;
 }
 
 .btn.google {
@@ -3272,4 +3274,44 @@ button:disabled {
 .report-example {
   font-size: var(--fs-sm);
   opacity: 0.85;
+}
+
+/* Kids mode text in brand colors. Coral, green, red and gold are too light as text on the Kids mode's light
+   surfaces (2-3.9:1); these darker shades of the same hues reach 4.5:1 (WCAG AA). Fills and icons keep the
+   bright ones. */
+.kids {
+  --primary-text: #c4381a;
+  --good-text: #12774a;
+  --bad-text: #c42b32;
+  --gold-text: #8f5c00;
+}
+.kids .btn.secondary,
+.kids .link,
+.kids .stats strong,
+.kids .level-name,
+.kids .kids-new-sticker strong,
+.kids .kids-stats strong {
+  color: var(--primary-text);
+}
+.kids .word-marks .ok,
+.kids .feedback.good,
+.kids .picture-ok,
+.kids .kids-option strong,
+.kids .kids-feedback,
+.kids .auth-info,
+.kids .fill-word {
+  color: var(--good-text);
+}
+.kids .word-marks .miss,
+.kids .warn,
+.kids .feedback.bad,
+.kids .timer.low,
+.kids .orb-label.warn,
+.kids .menu-item.danger strong {
+  color: var(--bad-text);
+}
+.kids .kids-total,
+.kids .picture-hint,
+.kids .msg .msg-tip {
+  color: var(--gold-text);
 }

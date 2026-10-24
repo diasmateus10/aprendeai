@@ -1,7 +1,7 @@
 // Adult home: "continue" first, then today's numbers and goal, the activities and the course as chapters.
 // Rare actions (placement test, Kids mode, reminder, sign-out) live in the account menu.
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   BookOpenText,
   CaretRight,
@@ -15,6 +15,7 @@ import {
   Target,
   Baby,
   SignOut,
+  Trash,
   X,
   PencilSimple,
   Crown,
@@ -22,7 +23,7 @@ import {
   ChartLineUp,
 } from "@phosphor-icons/react";
 import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
-import { openPortal, type ProgressReport, type Subscription } from "../lib/account";
+import { deleteAccount, openPortal, type ProgressReport, type Subscription } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
 import type { Lesson, Unit } from "../data/course";
 import { levelInfo } from "../data/levels";
@@ -443,11 +444,22 @@ function Course({ progress, path, lessons, currentIndex, isUnlocked, planLocked,
 function AccountMenu({ progress, email, subscription, granted, onPlacement, onKids, onSignOut, onUpgrade, onClose }: HomeProps & { onClose(): void }) {
   const level = levelInfo(progress.level);
   const [portalError, setPortalError] = useState<string | null>(null);
+  const [deleteState, setDeleteState] = useState<"idle" | "deleting" | string>("idle");
+  // Keyboard: focus moves into the menu when it opens, and Esc closes it.
+  const sheet = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
+  useEffect(() => {
+    sheet.current?.focus();
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && close.current();
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
   const premium = PREMIUM_STATUSES.includes(subscription?.status ?? "");
   const until = subscription?.current_period_end ? new Date(subscription.current_period_end).toLocaleDateString("pt-BR") : null;
   return (
     <div className="sheet-backdrop" onClick={onClose}>
-      <div className="sheet" role="dialog" aria-modal="true" aria-label="Sua conta" onClick={(e) => e.stopPropagation()}>
+      <div className="sheet" role="dialog" aria-modal="true" aria-label="Sua conta" tabIndex={-1} ref={sheet} onClick={(e) => e.stopPropagation()}>
         <header className="sheet-head">
           <span className="avatar-btn static">{(email[0] ?? "?").toUpperCase()}</span>
           <div>
@@ -520,6 +532,29 @@ function AccountMenu({ progress, email, subscription, granted, onPlacement, onKi
             <strong>Sair da conta</strong>
           </span>
         </ConfirmButton>
+
+        {deleteState === "deleting" ? (
+          <p className="hint small">Excluindo sua conta…</p>
+        ) : (
+          <ConfirmButton
+            className="menu-item danger"
+            question={`Excluir a conta e apagar todos os dados (progresso, conversas e relatórios)?${premium ? " A assinatura é cancelada na hora." : ""} Não dá para desfazer.`}
+            confirmLabel="Excluir para sempre"
+            onConfirm={async () => {
+              setDeleteState("deleting");
+              const error = await deleteAccount();
+              if (error) setDeleteState(error);
+              else onSignOut();
+            }}
+          >
+            <Trash size={22} weight="duotone" />
+            <span>
+              <strong>Excluir minha conta</strong>
+              <span className="hint">Apaga a conta e os dados guardados</span>
+            </span>
+          </ConfirmButton>
+        )}
+        {deleteState !== "idle" && deleteState !== "deleting" && <p className="warn small">{deleteState}</p>}
 
         <p className="legal-links">
           <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos de Uso</a>

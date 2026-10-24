@@ -64,6 +64,17 @@ export async function signOut() {
   await supabase.auth.signOut();
 }
 
+/** Deletes the account and everything saved in it (and cancels the subscription). Returns an error message, or "". */
+export async function deleteAccount(): Promise<string> {
+  clearTimeout(timer);
+  pending = null;
+  const res = await fetch("/api/account/delete", { method: "POST", headers: await authHeaders() }).catch(() => null);
+  if (!res?.ok) return "Não consegui excluir a conta agora. Tente de novo ou peça pelo e-mail de contato.";
+  // The account no longer exists; this only clears the session on this device.
+  await supabase.auth.signOut({ scope: "local" });
+  return "";
+}
+
 /** The account's saved progress, or null for a new account. Throws when the database can't be reached. */
 export async function loadRemote(userId: string): Promise<unknown | null> {
   const { data, error } = await supabase.from("user_progress").select("data").eq("user_id", userId).maybeSingle();

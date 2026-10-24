@@ -5,6 +5,7 @@ import { chatApi } from "./server/chat";
 import { ttsApi } from "./server/tts";
 import { pushApi } from "./server/push";
 import { billingApi } from "./server/billing";
+import { accountApi } from "./server/account";
 
 export default defineConfig(({ mode }) => {
   // Loads every variable from app/.env (no VITE_ prefix), so the key stays server-side only.
@@ -17,6 +18,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), chatApi(env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY),
       pushApi(),
       billingApi(),
+      accountApi(),
       ttsApi(env.AZURE_SPEECH_KEY || process.env.AZURE_SPEECH_KEY, env.AZURE_SPEECH_REGION || process.env.AZURE_SPEECH_REGION), ...(mobile ? [basicSsl()] : [])],
     server: { port: mobile ? 5174 : 5173, host: mobile },
   };
