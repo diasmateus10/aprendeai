@@ -38,10 +38,13 @@ export async function handleTts(url: URL, ip: string, key: string, region: strin
     return;
   }
 
-  // "Devagar" slows the voice down on the server, which keeps it natural instead of stretching the audio.
+  // "Devagar" slows the voice down on the server, which keeps it natural instead of stretching the audio,
+  // and puts a short pause between the words of short phrases.
+  const words = text.split(/\s+/);
+  const body = slow && words.length <= 10 ? words.map(escapeXml).join('<break time="250ms"/>') : escapeXml(text);
   const ssml =
     `<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="${accent}">` +
-    `<voice name="${VOICES[`${kind}:${accent}`]}"><prosody rate="${slow ? "-50%" : "0%"}">${escapeXml(text)}</prosody></voice></speak>`;
+    `<voice name="${VOICES[`${kind}:${accent}`]}"><prosody rate="${slow ? "-50%" : "0%"}">${body}</prosody></voice></speak>`;
   try {
     const azure = await fetch(`https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`, {
       method: "POST",

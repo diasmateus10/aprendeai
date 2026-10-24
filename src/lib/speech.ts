@@ -190,23 +190,9 @@ if (player) {
 /** Plays a short clip (feedback sounds) on the unlocked element, unless the server voice is speaking on it. */
 export function playEffect(url: string) {
   if (!player || endPlayback) return;
-  setAudioSession("playback");
   player.onended = player.onerror = null;
   player.src = url;
   void player.play().catch(() => {});
-}
-
-type AudioSessionNav = Navigator & { audioSession?: { type: string } };
-
-/** iOS (Safari 17+): "playback" plays sounds even with the silent switch on; "auto" lets the mic work. */
-export function setAudioSession(type: "auto" | "playback") {
-  const session = typeof navigator === "undefined" ? undefined : (navigator as AudioSessionNav).audioSession;
-  if (!session || session.type === type) return;
-  try {
-    session.type = type;
-  } catch {
-    // Older browsers: nothing to do.
-  }
 }
 
 function stopPlayback() {
@@ -268,14 +254,15 @@ export function speak(text: string, slow = false): Promise<void> {
   });
 }
 
-/** "Devagar": half speed (0.6 was still too fast for beginners, above all on iPhone). */
-const SLOW_RATE = 0.5;
+/** "Devagar": slower speech plus a pause between words (0.6 alone was still too fast for beginners). */
+const SLOW_RATE = 0.45;
+const SLOW_GAP_MS = 450;
 
 /** "Devagar" also says short sentences word by word (longer ones two words at a time), with a pause between. */
 function slowParts(text: string): string[] {
   const words = text.split(/\s+/).filter(Boolean);
   if (words.length <= 1) return words;
-  const size = words.length <= 8 ? 1 : 2;
+  const size = words.length <= 10 ? 1 : 2;
   const out: string[] = [];
   for (let i = 0; i < words.length; i += size) out.push(words.slice(i, i + size).join(" "));
   return out;
@@ -322,7 +309,7 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
       };
       // Safety net, restarted per voice: some engines never fire onend, which would stall the hands-free conversation.
       clearTimeout(timer);
-      timer = setTimeout(done, 4000 + text.length * (slow ? 300 : 90));
+      timer = setTimeout(done, 4000 + text.length * (slow ? 300 : 90) + (slow ? parts.length * SLOW_GAP_MS : 0));
       // Online voices (Google's in Chrome, Microsoft's "Natural" ones in Edge) sometimes stay silent without an error.
       clearTimeout(startTimer);
       let silent = false;
@@ -340,6 +327,8 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
         u.rate = slow ? SLOW_RATE : 1;
         if (i === 0) u.onstart = () => mine === attempt && clearTimeout(startTimer);
         if (i === parts.length - 1) u.onend = () => mine === attempt && done();
+        // "Devagar": the next word only after a pause, timed here (iPhone may ignore a low rate).
+        else if (slow) u.onend = () => setTimeout(() => mine === attempt && id === speakId && synth.speak(queue[i + 1]), SLOW_GAP_MS);
         u.onerror = (e) => {
           if (mine !== attempt) return;
           // Interrupted on purpose, or not allowed yet (no tap): nothing is wrong with the voice.
@@ -349,7 +338,8 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
         };
         return u;
       });
-      queue.forEach((u) => synth.speak(u));
+      if (slow) synth.speak(queue[0]);
+      else queue.forEach((u) => synth.speak(u));
     };
     // Chrome sometimes drops a speak() issued right after cancel(), so give it a moment when interrupting.
     if (interrupting) setTimeout(run, 80);
@@ -357,8 +347,12 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
   });
 }
 
+/** When speech was last cut off; the mic waits a moment after it (see listen). */
+let stoppedAt = 0;
+
 export function stopSpeaking() {
   speakId++;
+  stoppedAt = Date.now();
   stopPlayback();
   if (ttsSupported) window.speechSynthesis.cancel();
 }
@@ -400,7 +394,17 @@ export interface ListenCallbacks {
   onEnd?(): void;
 }
 
-/** Listens for one English utterance and reports all recognition alternatives. */
+/** Nothing heard by then: give up instead of listening forever. */
+const NO_SPEECH_MS = 8000;
+/** Silence after the learner's last words that ends the answer (Safari is slow to notice it). */
+const SILENCE_MS = 1800;
+/** Longest answer. */
+const MAX_LISTEN_MS = 20000;
+/** After stop(), how long the browser gets to report before we finish ourselves (iOS may never call onend). */
+const END_GRACE_MS = 1500;
+
+/** Listens for one English utterance and reports all recognition alternatives. Always ends: onFinal and
+ * onEnd are called exactly once, even when the browser stalls, which happens on iPhone. */
 export function listen(cb: ListenCallbacks): ListenHandle {
   const Ctor = getRecognitionCtor();
   if (!Ctor) {
@@ -414,24 +418,88 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   rec.maxAlternatives = 5;
   rec.continuous = false;
   let delivered = false;
+  let ended = false;
+  let lastInterim = "";
+  const timers: ReturnType<typeof setTimeout>[] = [];
+  let silence: ReturnType<typeof setTimeout> | undefined;
+  const later = (fn: () => void, ms: number) => timers.push(setTimeout(fn, ms));
+
+  const deliver = (alts: string[]) => {
+    if (delivered) return;
+    delivered = true;
+    cb.onFinal(alts);
+  };
+  const finish = () => {
+    if (ended) return;
+    ended = true;
+    timers.forEach(clearTimeout);
+    clearTimeout(silence);
+    // Safari often shows the words as interim results and never marks them final: use them.
+    deliver(lastInterim ? [lastInterim] : []);
+    cb.onEnd?.();
+  };
+  const stop = () => {
+    if (ended) return;
+    try {
+      rec.stop();
+    } catch {
+      // Already stopped.
+    }
+    later(() => {
+      try {
+        rec.abort();
+      } catch {
+        // Already stopped.
+      }
+      finish();
+    }, END_GRACE_MS);
+  };
+
   rec.onresult = (e) => {
     const result = e.results[e.results.length - 1];
     if (result.isFinal) {
       const alts: string[] = [];
       for (let i = 0; i < result.length; i++) alts.push(result[i].transcript);
-      delivered = true;
-      cb.onFinal(alts);
+      deliver(alts);
+      stop();
     } else {
-      cb.onInterim?.(result[0].transcript);
+      lastInterim = result[0].transcript;
+      cb.onInterim?.(lastInterim);
+      clearTimeout(silence);
+      silence = setTimeout(stop, SILENCE_MS);
     }
   };
   rec.onerror = (e) => cb.onError?.(e.error);
-  rec.onend = () => {
-    if (!delivered) cb.onFinal([]);
-    cb.onEnd?.();
+  rec.onend = finish;
+  later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
+  later(stop, MAX_LISTEN_MS);
+  const begin = () => {
+    if (ended) return;
+    try {
+      rec.start();
+    } catch {
+      // A previous recognition still holding the mic: end cleanly so the learner can tap again.
+      finish();
+    }
   };
-  // A "playback" audio session (for sounds in silent mode) would block the mic on iOS.
-  setAudioSession("auto");
-  rec.start();
-  return { stop: () => rec.stop(), abort: () => rec.abort() };
+  // A line that never got to play (iPhone blocks speech it didn't get from a tap) can sit in the queue
+  // and keep the audio busy, so the mic records silence: clear it and give the audio a moment.
+  const synth = ttsSupported ? window.speechSynthesis : null;
+  if (synth && (synth.speaking || synth.pending)) {
+    synth.cancel();
+    later(begin, 300);
+  } else if (Date.now() - stoppedAt < 300) later(begin, 300 - (Date.now() - stoppedAt));
+  else begin();
+  return {
+    stop,
+    abort: () => {
+      delivered = true;
+      try {
+        rec.abort();
+      } catch {
+        // Already stopped.
+      }
+      finish();
+    },
+  };
 }
