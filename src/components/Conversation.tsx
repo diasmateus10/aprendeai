@@ -207,6 +207,8 @@ export function Conversation({
   };
   /** Recognition sessions in a row that ended right away without hearing anything. */
   const fastFails = useRef(0);
+  /** Recognition sessions in a row where the mic didn't open or heard nothing at all. */
+  const deafRuns = useRef(0);
   /** Bumped whenever a line is spoken or interrupted, so a stale say() doesn't reopen the mic. */
   const sayId = useRef(0);
 
@@ -228,17 +230,27 @@ export function Conversation({
     setPhase("listening");
     const began = Date.now();
     let heard = false;
+    let gotSound = false;
+    let noStart = false;
     const handle: ListenHandle = listen({
-      onInterim: (t) => mic.current === handle && setInterim(t),
+      onInterim: (t) => {
+        if (mic.current !== handle) return;
+        gotSound = true;
+        setInterim(t);
+      },
       onFinal: (alts) => {
-        if (mic.current !== handle || !alts[0]?.trim()) return;
+        const said = alts.find((a) => a.trim());
+        if (mic.current !== handle || !said) return;
         heard = true;
         fastFails.current = 0;
+        deafRuns.current = 0;
         mic.current = null;
-        submit(alts[0]);
+        submit(said);
       },
       onError: (e) => {
-        if (mic.current !== handle || !MIC_FATAL[e]) return;
+        if (mic.current !== handle) return;
+        if (e === "no-start") noStart = true;
+        if (!MIC_FATAL[e]) return;
         setLive(false);
         setMicError(MIC_FATAL[e]);
       },
@@ -252,6 +264,14 @@ export function Conversation({
         fastFails.current = Date.now() - began < 1000 ? fastFails.current + 1 : 0;
         if (fastFails.current >= 3) {
           setLive(false);
+          return;
+        }
+        // A mic that didn't open or keeps hearing nothing would show "Ouvindo…" forever: pause and ask for a
+        // tap, which also opens it reliably on iPhone.
+        deafRuns.current = noStart || !gotSound ? deafRuns.current + 1 : 0;
+        if (deafRuns.current >= 3) {
+          setLive(false);
+          setMicError(noStart ? "O microfone não abriu sozinho. Toque na bolinha para falar." : "Não ouvi nada. Toque na bolinha quando quiser falar.");
           return;
         }
         setTimeout(() => liveRef.current && phaseRef.current === "idle" && startListening(), 150);
@@ -373,6 +393,7 @@ export function Conversation({
     stopSpeaking();
     setLive(true);
     fastFails.current = 0;
+    deafRuns.current = 0;
     setPhase("idle");
     startListening();
   };

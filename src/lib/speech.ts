@@ -230,6 +230,14 @@ const SERVER_MAX_CHARS = 600;
 
 /** Speaks the text; resolves when it finishes, fails or is interrupted by another speak()/stopSpeaking(). */
 export function speak(text: string, slow = false): Promise<void> {
+  const id = speakId + 1;
+  return speakLine(text, slow).finally(() => {
+    // The mic must not open the instant a line ends (see listen).
+    if (id === speakId) quietSince = Date.now();
+  });
+}
+
+function speakLine(text: string, slow: boolean): Promise<void> {
   const id = ++speakId;
   stopPlayback();
   if (ttsSupported) window.speechSynthesis.cancel();
@@ -347,12 +355,13 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
   });
 }
 
-/** When speech was last cut off; the mic waits a moment after it (see listen). */
-let stoppedAt = 0;
+/** When speech last ended or was cut off; the mic waits a moment after it (see listen). */
+let quietSince = 0;
 
 export function stopSpeaking() {
   speakId++;
-  stoppedAt = Date.now();
+  // Only when something was playing: a tap with nothing to cut off should open the mic right away, within the tap.
+  if (endPlayback || (ttsSupported && (window.speechSynthesis.speaking || window.speechSynthesis.pending))) quietSince = Date.now();
   stopPlayback();
   if (ttsSupported) window.speechSynthesis.cancel();
 }
@@ -366,6 +375,7 @@ interface SpeechRecognitionLike {
   continuous: boolean;
   onresult: ((e: { results: ArrayLike<ArrayLike<{ transcript: string; confidence: number }> & { isFinal: boolean }> }) => void) | null;
   onerror: ((e: { error: string }) => void) | null;
+  onstart: (() => void) | null;
   onend: (() => void) | null;
   start(): void;
   stop(): void;
@@ -402,6 +412,12 @@ const SILENCE_MS = 1800;
 const MAX_LISTEN_MS = 20000;
 /** After stop(), how long the browser gets to report before we finish ourselves (iOS may never call onend). */
 const END_GRACE_MS = 1500;
+/** Gap between speech ending and the mic opening. Opened right as a line ends, the iPhone's audio is still
+ * switching over and the mic records nothing, which made the hands-free conversation deaf after the first turn. */
+const AFTER_SPEECH_MS = isIOS ? 700 : 300;
+/** The browser never confirmed the mic opened by then: report "no-start" instead of pretending to listen. */
+const START_CONFIRM_MS = 2500;
+let micEverStarted = false;
 
 /** Listens for one English utterance and reports all recognition alternatives. Always ends: onFinal and
  * onEnd are called exactly once, even when the browser stalls, which happens on iPhone. */
@@ -469,26 +485,44 @@ export function listen(cb: ListenCallbacks): ListenHandle {
       silence = setTimeout(stop, SILENCE_MS);
     }
   };
+  let started = false;
+  rec.onstart = () => {
+    started = true;
+    micEverStarted = true;
+  };
   rec.onerror = (e) => cb.onError?.(e.error);
   rec.onend = finish;
-  later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
-  later(stop, MAX_LISTEN_MS);
   const begin = () => {
     if (ended) return;
+    later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
+    later(stop, MAX_LISTEN_MS);
+    later(() => {
+      // Before the mic first opened on this page, the permission prompt may be what's taking long.
+      if (started || ended || !micEverStarted) return;
+      cb.onError?.("no-start");
+      try {
+        rec.abort();
+      } catch {
+        // Never started.
+      }
+      finish();
+    }, START_CONFIRM_MS);
     try {
       rec.start();
     } catch {
       // A previous recognition still holding the mic: end cleanly so the learner can tap again.
+      cb.onError?.("no-start");
       finish();
     }
   };
   // A line that never got to play (iPhone blocks speech it didn't get from a tap) can sit in the queue
   // and keep the audio busy, so the mic records silence: clear it and give the audio a moment.
   const synth = ttsSupported ? window.speechSynthesis : null;
+  const sinceSpeech = Date.now() - quietSince;
   if (synth && (synth.speaking || synth.pending)) {
     synth.cancel();
-    later(begin, 300);
-  } else if (Date.now() - stoppedAt < 300) later(begin, 300 - (Date.now() - stoppedAt));
+    later(begin, AFTER_SPEECH_MS);
+  } else if (sinceSpeech < AFTER_SPEECH_MS) later(begin, AFTER_SPEECH_MS - sinceSpeech);
   else begin();
   return {
     stop,
