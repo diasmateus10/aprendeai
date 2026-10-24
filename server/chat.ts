@@ -8,6 +8,7 @@ import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 import { KIDS_TOPICS } from "../src/data/kids.js";
 import { activeMinutes, allow, isPremium, userFromRequest } from "./db.js";
+import { isSessionId, partnerNotes, saveConversation, saveFeedback, updateInsights } from "./history.js";
 import { FREE_CHATS_PER_DAY, PAYWALL_MARK, PREMIUM_CHAT_MINUTES } from "../src/data/plans.js";
 
 // Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
@@ -119,6 +120,8 @@ type ChatBody = {
   style?: Partial<Record<keyof AiStyle, unknown>>;
   /** Kids mode age band; unknown values fall back to 6-10. */
   age: string;
+  /** Client-made id that groups one conversation's requests in the history (adult mode). */
+  sessionId?: string;
 };
 
 function parseBody(raw: string): ChatBody | null {
@@ -132,7 +135,8 @@ function parseBody(raw: string): ChatBody | null {
       return { role: m.role, content: m.content.slice(0, MAX_CHARS) };
     });
     const style = b.style && typeof b.style === "object" ? b.style : undefined;
-    return { topic: b.topic, level: String(b.level), mode: b.mode, messages, style, age: String(b.age ?? "") };
+    const sessionId = isSessionId(b.sessionId) ? b.sessionId : undefined;
+    return { topic: b.topic, level: String(b.level), mode: b.mode, messages, style, age: String(b.age ?? ""), sessionId };
   } catch {
     return null;
   }
@@ -216,7 +220,8 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
   let messages: Anthropic.Beta.BetaMessageParam[];
   let system: string;
   if (body.mode === "chat") {
-    system = kids ? kidsPrompt(body.topic, body.age) : systemPrompt(body.topic, body.level, body.style);
+    // Adults' partner also gets what this learner struggles with, from the insights agent.
+    system = kids ? kidsPrompt(body.topic, body.age) : systemPrompt(body.topic, body.level, body.style) + (await partnerNotes(user.id));
     // The opening turn has no learner message yet; a neutral cue starts the scenario.
     messages = [{ role: "user", content: "(The learner is ready. Start the conversation.)" }, ...body.messages];
   } else {
@@ -241,16 +246,25 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
       output_config: { effort: EFFORT },
       ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
     });
-    let wrote = false;
+    let reply = "";
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
-        if (!wrote) console.log(`[chat] ${MODEL} first words after ${Date.now() - started} ms`);
+        if (!reply) console.log(`[chat] ${MODEL} first words after ${Date.now() - started} ms`);
         res.write(event.delta.text);
-        wrote = true;
+        reply += event.delta.text;
       }
     }
     const final = await stream.finalMessage();
-    if (final.stop_reason === "refusal" || !wrote) res.write("(Não consegui responder a isso. Vamos mudar de assunto?)");
+    const answered = final.stop_reason !== "refusal" && reply.length > 0;
+    if (!answered) res.write("(Não consegui responder a isso. Vamos mudar de assunto?)");
+    // History (adult mode only). Saved before ending the response: serverless work after it may be cut off.
+    if (!kids && body.sessionId && answered) {
+      if (body.mode === "chat") await saveConversation(user.id, body.sessionId, body.topic, body.level, body.messages, reply);
+      else {
+        await saveFeedback(user.id, body.sessionId, reply);
+        await updateInsights(client, user.id);
+      }
+    }
     res.end();
   } catch (error) {
     let message = "Erro ao falar com a IA. Tente de novo.";

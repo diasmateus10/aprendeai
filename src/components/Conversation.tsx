@@ -26,7 +26,7 @@ function splitTip(text: string): { said: string; tip: string | null } {
 }
 
 async function streamChat(
-  body: { topic: string; level: string; mode: "chat" | "feedback"; messages: Turn[]; style: AiStyle; age?: string },
+  body: { topic: string; level: string; mode: "chat" | "feedback"; messages: Turn[]; style: AiStyle; age?: string; sessionId: string },
   onText: (soFar: string) => void,
   signal: AbortSignal,
 ): Promise<string> {
@@ -184,6 +184,8 @@ export function Conversation({
   const [micError, setMicError] = useState<string | null>(null);
   const ended = left <= 0 || feedback !== null;
   const abort = useRef(new AbortController());
+  /** Groups this conversation's messages in the learner's history on the server. */
+  const sessionId = useRef(crypto.randomUUID());
   const mic = useRef<ListenHandle | null>(null);
   const started = useRef(Date.now());
   const bottom = useRef<HTMLDivElement>(null);
@@ -276,7 +278,7 @@ export function Conversation({
     setPhase("thinking");
     try {
       const reply = await streamChat(
-        { topic: topic.id, level, mode: "chat", messages: history, style, age },
+        { topic: topic.id, level, mode: "chat", messages: history, style, age, sessionId: sessionId.current },
         (t) => setStreaming(t),
         abort.current.signal,
       );
@@ -333,7 +335,7 @@ export function Conversation({
     const spent = Math.min(seconds, Math.round((Date.now() - started.current) / 1000));
     onFinish(spent, turns.filter((t) => t.role === "user").length);
     try {
-      await streamChat({ topic: topic.id, level, mode: "feedback", messages: turns, style, age }, (t) => setFeedback(t), abort.current.signal);
+      await streamChat({ topic: topic.id, level, mode: "feedback", messages: turns, style, age, sessionId: sessionId.current }, (t) => setFeedback(t), abort.current.signal);
     } catch {
       setFeedback("Não foi possível gerar o feedback agora.");
     }
