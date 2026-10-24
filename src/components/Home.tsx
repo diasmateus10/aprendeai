@@ -18,7 +18,9 @@ import {
   X,
   PencilSimple,
   Crown,
+  Brain,
 } from "@phosphor-icons/react";
+import { learnedCount } from "./Flashcards";
 import { openPortal, type Subscription } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
 import { lessons, units, type Lesson, type Unit } from "../data/course";
@@ -138,6 +140,7 @@ function ContinueCard({ progress, currentIndex, onLesson, planLocked, onUpgrade 
 
 function Numbers({ progress }: { progress: Progress }) {
   const streak = displayStreak(progress);
+  const learned = learnedCount(progress.cards);
   return (
     <section className="numbers" aria-label="Seus números">
       <div>
@@ -154,6 +157,11 @@ function Numbers({ progress }: { progress: Progress }) {
         <Microphone size={22} weight="fill" className="coral" />
         <strong>{Math.round(progress.speakingSeconds / 60)}</strong>
         <span>min falando</span>
+      </div>
+      <div>
+        <Brain size={22} weight="fill" className="coral" />
+        <strong>{learned}</strong>
+        <span>{learned === 1 ? "palavra decorada" : "palavras decoradas"}</span>
       </div>
     </section>
   );

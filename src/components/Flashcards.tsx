@@ -3,6 +3,7 @@ import { ArrowLeft, Cards, CheckCircle, Lightbulb, Microphone, Stop, X } from "@
 import { Mascot } from "./Brand";
 import { SoundButtons } from "./ui";
 import { categoriesFor, imageFor } from "../data/vocab";
+import photos from "../data/photos.json";
 import type { CardState, Level } from "../lib/progress";
 import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
@@ -20,16 +21,37 @@ export interface Card {
 }
 
 /** The card's 3D illustration; falls back to the plain emoji if the image fails to load. */
-function CardPicture({ emoji }: { emoji: string }) {
-  const [failed, setFailed] = useState(false);
-  if (failed) {
+/** Real photos (Pexels) for the adult words, by English word; made by scripts/pexels-photos.mjs. */
+const PHOTOS: Record<string, { file: string; by: string; url: string }> = photos;
+
+/**
+ * The card's picture: a real photo when there is one (adult cards), otherwise the 3D illustration
+ * (Kids mode, which keeps illustrations), and the emoji if even that fails to load.
+ */
+function CardPicture({ emoji, word, photo }: { emoji: string; word: string; photo: boolean }) {
+  const [failed, setFailed] = useState(0);
+  const real = photo ? PHOTOS[word] : undefined;
+  if (real && failed === 0) {
+    return (
+      <figure className="picture-photo">
+        <img src={`/photos/${real.file}`} alt="foto" width={240} height={240} onError={() => setFailed(1)} />
+        <figcaption>
+          Foto:{" "}
+          <a href={real.url} target="_blank" rel="noreferrer">
+            {real.by} / Pexels
+          </a>
+        </figcaption>
+      </figure>
+    );
+  }
+  if (failed === 2 || (failed === 1 && !real)) {
     return (
       <div className="picture-emoji" aria-label="imagem">
         {emoji}
       </div>
     );
   }
-  return <img className="picture-img" src={imageFor(emoji)} alt="imagem" width={180} height={180} onError={() => setFailed(true)} />;
+  return <img className="picture-img" src={imageFor(emoji)} alt="imagem" width={180} height={180} onError={() => setFailed(2)} />;
 }
 
 /** Days until a card in each Leitner box comes back. */
@@ -61,12 +83,38 @@ export function deckFor(level: Level | null): Card[] {
   return deck;
 }
 
-/** Due cards first, then unseen ones, capped at one session's worth. */
+/** Reviews never take more than this share of a session, so new words keep showing up. */
+const MAX_REVIEW_SHARE = 0.5;
+
+/** A shuffle that stays the same all day (re-opening keeps its order) and changes the next day. */
+function dailyShuffle<T>(items: T[], salt: string): T[] {
+  let seed = [...salt].reduce((h, c) => (h * 31 + c.charCodeAt(0)) >>> 0, 7);
+  const random = () => ((seed = (seed * 1664525 + 1013904223) >>> 0) / 2 ** 32);
+  const a = [...items];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/**
+ * A session: due reviews (most overdue first, at most half the session), then new words in a daily
+ * shuffled order; if there aren't enough new words, more reviews fill the rest.
+ */
 export function sessionCards(deck: Card[], states: Record<string, CardState>): Card[] {
   const today = addDays(0);
-  const due = deck.filter((c) => states[c.id] && states[c.id].due <= today);
-  const fresh = deck.filter((c) => !states[c.id]);
-  return [...due, ...fresh].slice(0, SESSION_SIZE);
+  const due = deck.filter((c) => states[c.id] && states[c.id].due <= today).sort((a, b) => states[a.id].due.localeCompare(states[b.id].due));
+  const fresh = dailyShuffle(deck.filter((c) => !states[c.id]), today);
+  const reviews = due.slice(0, Math.ceil(SESSION_SIZE * MAX_REVIEW_SHARE));
+  const news = fresh.slice(0, SESSION_SIZE - reviews.length);
+  const extra = due.slice(reviews.length, reviews.length + SESSION_SIZE - reviews.length - news.length);
+  return dailyShuffle([...reviews, ...news, ...extra], today + "mix");
+}
+
+/** Words that came back right on at least two different days (Leitner box 2 or more). */
+export function learnedCount(states: Record<string, CardState>): number {
+  return Object.values(states).filter((s) => s.box >= 2).length;
 }
 
 function words(text: string): string[] {
@@ -131,27 +179,45 @@ export function Flashcards({
   onExit(): void;
 }) {
   const [queue, setQueue] = useState(cards);
+  /** To tell, at the end, how many words this session moved to "learned". */
+  const learnedAtStart = useRef(learnedCount(states));
   const [known, setKnown] = useState(0);
   const card = queue[0];
 
   const rate = (grade: Grade) => {
     const prev = states[card.id]?.box ?? 0;
     const box = grade === "easy" ? Math.min(prev + 1, INTERVALS.length - 1) : grade === "hard" ? Math.max(prev, 1) : 0;
-    onRate(card.id, { box, due: addDays(grade === "miss" ? 0 : INTERVALS[box]) });
+    onRate(card.id, { box, due: addDays(grade === "miss" ? 1 : INTERVALS[box]) });
     if (grade !== "miss") setKnown((k) => k + 1);
     // Missed cards go to the back of this session's queue so they're seen again today.
     setQueue((q) => (grade === "miss" ? [...q.slice(1), q[0]] : q.slice(1)));
   };
 
   if (!card) {
+    const learned = learnedCount(states);
+    const gained = learned - learnedAtStart.current;
     return (
       <div className="result">
         <div className="result-card">
           <Mascot mood={known ? "happy" : "neutral"} size={112} className="result-mascot" />
           <h1>{cards.length ? "Revisão concluída!" : "Nada para revisar hoje"}</h1>
+          {cards.length > 0 && (
+            <div className="stats">
+              <div>
+                <strong>
+                  {known}/{cards.length}
+                </strong>
+                <span>acertos</span>
+              </div>
+              <div>
+                <strong>{gained > 0 ? `+${gained}` : learned}</strong>
+                <span>{gained > 0 ? "decoradas hoje" : "decoradas"}</span>
+              </div>
+            </div>
+          )}
           <p className="hint">
             {cards.length
-              ? `Você acertou ${known} de ${cards.length} imagens. As que você errou voltam na próxima revisão.`
+              ? `Você já decorou ${learned} ${learned === 1 ? "palavra" : "palavras"}. Uma palavra conta como decorada quando você acerta em dois dias diferentes; as que você errou voltam amanhã.`
               : "Você já viu todos os cartões de hoje. Volte amanhã para revisar."}
           </p>
           <div className="result-actions">
@@ -247,7 +313,7 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
     <>
       <div className={`flashcard picture ${phase}`}>
         <span className="card-category">{card.category}</span>
-        <CardPicture key={card.id} emoji={card.emoji} />
+        <CardPicture key={card.id} emoji={card.emoji} word={card.en} photo={!card.id.startsWith("kids:")} />
         {phase === "ask" ? (
           <>
             <p className="picture-question">{card.question ?? (card.verb ? "Que ação é essa?" : "O que é isso?")} Fale em inglês.</p>

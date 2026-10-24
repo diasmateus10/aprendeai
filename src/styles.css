@@ -3068,3 +3068,72 @@ button:disabled {
   height: 1px;
   background: var(--border);
 }
+
+/* Dictation, second try: fixed right words and blanks for the missed ones */
+
+.fill-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-lg);
+  margin: 8px 0;
+}
+
+.fill-word {
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--good-bg);
+  color: var(--good);
+  font-weight: 600;
+}
+
+.fill-input {
+  font: inherit;
+  padding: 6px 8px;
+  border-radius: var(--radius-sm);
+  border: 2px dashed var(--primary);
+  background: var(--surface);
+  color: var(--text);
+  text-align: center;
+}
+
+.fill-input:focus {
+  border-style: solid;
+}
+
+/* Four numbers on the home: 2×2 on phones, one row on wider screens */
+.numbers {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+@media (min-width: 560px) {
+  .numbers {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.picture-photo {
+  margin: 8px 0 4px;
+  display: grid;
+  gap: 4px;
+  justify-items: center;
+}
+
+.picture-photo img {
+  width: 240px;
+  height: 240px;
+  max-width: 64vw;
+  max-height: 64vw;
+  object-fit: cover;
+  border-radius: var(--radius-lg);
+}
+
+.picture-photo figcaption {
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.picture-photo a {
+  color: inherit;
+}

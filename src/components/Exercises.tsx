@@ -128,35 +128,95 @@ function MinimalPairView({ ex, onAnswer, locked }: Props & { ex: Extract<Exercis
   );
 }
 
+/**
+ * Dictation in two tries: after a wrong first answer the words already right stay in place and only
+ * the missed ones become blanks to fill, so the second try is about what was actually missed.
+ */
 function Dictation({ phrase, onAnswer, locked }: Props & { phrase: Phrase }) {
   const [text, setText] = useState("");
-  const [score, setScore] = useState<Score | null>(null);
-  const check = () => {
-    const s = scoreTyped(phrase.en, text);
-    setScore(s);
-    const ok = s.accuracy >= TYPE_PASS;
-    onAnswer({ correct: ok, message: ok ? "Perfeito!" : "Resposta correta:", solution: `${phrase.en} — ${phrase.pt}` });
+  /** Scoring of the first, wrong try; set while the learner fills the blanks. */
+  const [first, setFirst] = useState<Score | null>(null);
+  const [fills, setFills] = useState<Record<number, string>>({});
+  const [final, setFinal] = useState<Score | null>(null);
+  const solution = `${phrase.en} — ${phrase.pt}`;
+
+  const finish = (score: Score) => {
+    setFinal(score);
+    const ok = score.accuracy >= TYPE_PASS;
+    onAnswer({ correct: ok, message: ok ? (first ? "Isso! Completou certinho." : "Perfeito!") : "Resposta correta:", solution });
   };
+
+  const blanks = first ? first.words.map((w, i) => (w.ok ? -1 : i)).filter((i) => i >= 0) : [];
+  const ready = first ? blanks.every((i) => (fills[i] ?? "").trim()) : text.trim().length > 0;
+
+  const check = () => {
+    if (!ready || locked) return;
+    if (!first) {
+      const score = scoreTyped(phrase.en, text);
+      if (score.accuracy >= TYPE_PASS) return finish(score);
+      // When contractions keep words from lining up, the marks are all-or-nothing: then every word is a blank,
+      // or the second try would be a free pass.
+      setFirst(score.words.every((w) => w.ok) ? { ...score, words: score.words.map((w) => ({ ...w, ok: false })) } : score);
+      return;
+    }
+    const sentence = first.words.map((w, i) => (w.ok ? w.word : (fills[i] ?? "").trim())).join(" ");
+    finish(scoreTyped(phrase.en, sentence));
+  };
+
+  const onEnter = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      check();
+    }
+  };
+
   return (
     <div className="exercise">
-      <h2>Escreva o que você ouviu</h2>
-      <AudioButtons text={phrase.en} />
-      <textarea
-        className="dictation"
-        placeholder="Digite em inglês..."
-        value={text}
-        disabled={locked}
-        autoFocus
-        onChange={(e) => setText(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && !e.shiftKey && text.trim() && !locked) {
-            e.preventDefault();
-            check();
-          }
-        }}
-      />
-      {score && <WordMarks score={score} />}
-      <CheckBar disabled={!text.trim() || locked} onCheck={check} />
+      <h2>{first ? "Quase! Complete só o que faltou" : "Escreva o que você ouviu"}</h2>
+      <AudioButtons text={phrase.en} autoplay={!first} />
+      {!first ? (
+        <textarea
+          className="dictation"
+          placeholder="Digite em inglês..."
+          value={text}
+          disabled={locked}
+          autoFocus
+          onChange={(e) => setText(e.target.value)}
+          onKeyDown={onEnter}
+        />
+      ) : final ? (
+        <WordMarks score={final} />
+      ) : (
+        <>
+          <p className="hint">As palavras em verde você já acertou. Ouça de novo e preencha os espaços.</p>
+          <div className="fill-row">
+            {first.words.map((w, i) =>
+              w.ok ? (
+                <span key={i} className="fill-word">
+                  {w.word}
+                </span>
+              ) : (
+                <input
+                  key={i}
+                  className="fill-input"
+                  aria-label={`Palavra ${i + 1}`}
+                  style={{ width: `${Math.max(w.word.length, 2) + 2}ch` }}
+                  placeholder={"_".repeat(w.word.replace(/[^\p{L}']/gu, "").length || 1)}
+                  value={fills[i] ?? ""}
+                  autoFocus={i === blanks[0]}
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck={false}
+                  disabled={locked}
+                  onChange={(e) => setFills({ ...fills, [i]: e.target.value })}
+                  onKeyDown={onEnter}
+                />
+              ),
+            )}
+          </div>
+        </>
+      )}
+      <CheckBar disabled={!ready || locked} onCheck={check} />
     </div>
   );
 }
