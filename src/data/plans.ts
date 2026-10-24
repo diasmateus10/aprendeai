@@ -22,6 +22,8 @@ export const TRIAL_DAYS = 7;
 /** Free plan: the first unit of the course, one AI conversation a day and a taste of the Kids rhymes. */
 export const FREE_UNITS = 1;
 export const FREE_CHATS_PER_DAY = 1;
+/** Premium talk time with the AI per day, in minutes of active conversation. */
+export const PREMIUM_CHAT_MINUTES = 30;
 export const FREE_RHYMES = 2;
 
 /** Stripe statuses that keep Premium on (past_due: Stripe is still retrying the card). */

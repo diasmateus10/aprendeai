@@ -7,8 +7,8 @@ import type { Plugin } from "vite";
 import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 import { KIDS_TOPICS } from "../src/data/kids.js";
-import { allow, isPremium, userFromRequest } from "./db.js";
-import { FREE_CHATS_PER_DAY, PAYWALL_MARK } from "../src/data/plans.js";
+import { activeMinutes, allow, isPremium, userFromRequest } from "./db.js";
+import { FREE_CHATS_PER_DAY, PAYWALL_MARK, PREMIUM_CHAT_MINUTES } from "../src/data/plans.js";
 
 // Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
 // ANTHROPIC_MODEL overrides it, e.g. claude-opus-5-5 for richer conversation at a much higher cost.
@@ -157,9 +157,8 @@ export function clientIp(req: IncomingMessage): string {
   return first || req.socket.remoteAddress || "unknown";
 }
 
-// Daily limits per account (counted in Supabase). Free: FREE_CHATS_PER_DAY conversations. Premium is
-// "unlimited", with a generous ceiling that only stops abuse of the API credits.
-const PREMIUM_SESSIONS_PER_DAY = Number(process.env.CHAT_SESSIONS_PER_DAY ?? 30);
+// Daily limits per account (counted in Supabase). Free: FREE_CHATS_PER_DAY conversations.
+// Premium: PREMIUM_CHAT_MINUTES minutes of active conversation a day.
 const REQUESTS_PER_DAY = Number(process.env.CHAT_REQUESTS_PER_DAY ?? 400);
 
 /** Error to answer with, or null when the conversation may go on. Counts only what is allowed. */
@@ -168,17 +167,18 @@ async function overLimit(userId: string, newSession: boolean): Promise<{ status:
   if (!(await allow(who, "chat_request", REQUESTS_PER_DAY))) {
     return { status: 429, text: "Limite diário de mensagens atingido. Volte amanhã!" };
   }
-  if (!newSession) return null;
   if (await isPremium(userId)) {
-    return (await allow(who, "chat_session", PREMIUM_SESSIONS_PER_DAY))
+    // Every message marks its minute; past the daily time, new messages wait for tomorrow.
+    return (await activeMinutes(who, "chat_min")) <= PREMIUM_CHAT_MINUTES
       ? null
-      : { status: 429, text: `Você já fez ${PREMIUM_SESSIONS_PER_DAY} conversas hoje. Volte amanhã!` };
+      : { status: 429, text: `Você já conversou ${PREMIUM_CHAT_MINUTES} minutos hoje. Volte amanhã para mais!` };
   }
+  if (!newSession) return null;
   return (await allow(who, "free_chat", FREE_CHATS_PER_DAY))
     ? null
     : {
         status: 402,
-        text: `${PAYWALL_MARK} No plano grátis é ${FREE_CHATS_PER_DAY} conversa por dia. Com o Premium você conversa à vontade.`,
+        text: `${PAYWALL_MARK} No plano grátis é ${FREE_CHATS_PER_DAY} conversa por dia. Com o Premium são ${PREMIUM_CHAT_MINUTES} minutos todo dia.`,
       };
 }
 

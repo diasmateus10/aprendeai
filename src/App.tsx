@@ -165,7 +165,7 @@ export default function App() {
           {premium
             ? trialEnd
               ? `Seu teste grátis vai até ${trialEnd.toLocaleDateString("pt-BR")}. Você pode cancelar antes disso no menu da conta.`
-              : "Todas as unidades, conversas sem limite e o Modo Kids completo estão liberados."
+              : "Todas as unidades, 30 minutos de conversa por dia e o Modo Kids completo estão liberados."
             : "Estamos confirmando o pagamento. Se o Premium não aparecer em alguns minutos, abra o app de novo."}
         </p>
         <div className="result-actions">

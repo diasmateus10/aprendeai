@@ -57,3 +57,28 @@ export async function allow(ip: string, kind: string, limit: number): Promise<bo
   memory.set(key, n);
   return n <= limit;
 }
+
+/**
+ * Marks the current minute as used for `kind` and returns how many distinct minutes were used today:
+ * talk time measured by activity, so a conversation ended early doesn't waste the rest of the day's time.
+ */
+export async function activeMinutes(id: string, kind: string): Promise<number> {
+  const now = new Date();
+  const day = now.toISOString().slice(0, 10);
+  const minute = `${kind}:${now.toISOString().slice(11, 16)}`;
+  const supabase = db();
+  if (supabase) {
+    const who = createHmac("sha256", process.env.SUPABASE_SECRET_KEY!).update(id).digest("base64url").slice(0, 22);
+    const mark = await supabase.rpc("use_quota", { p_client: who, p_day: day, p_kind: minute, p_limit: 1_000_000 });
+    const { count, error } = await supabase
+      .from("api_usage")
+      .select("kind", { count: "exact", head: true })
+      .eq("client", who)
+      .eq("day", day)
+      .like("kind", `${kind}:%`);
+    if (!mark.error && !error) return count ?? 0;
+    console.error("[db] activeMinutes failed; counting in memory:", (mark.error ?? error)!.message);
+  }
+  memory.set(`${day}|${minute}|${id}`, 1);
+  return [...memory.keys()].filter((k) => k.startsWith(`${day}|${kind}:`) && k.endsWith(`|${id}`)).length;
+}

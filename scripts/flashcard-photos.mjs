@@ -1,10 +1,12 @@
-// Downloads a real photo for every adult flashcard word from Pexels (free license, commercial use ok),
-// crops it square and saves it in public/photos, plus src/data/photos.json with each photographer's credit.
-//   node scripts/pexels-photos.mjs              all words that have no photo yet
-//   node scripts/pexels-photos.mjs dog=2 eye    redo some words; "=2" takes the 3rd search result
-// Needs PEXELS_API_KEY in .env and `sharp` (npm i -D sharp).
+// Downloads a real photo for every adult flashcard word from Pixabay (free license, commercial use ok,
+// and their API asks for images to be stored on our side rather than hotlinked), crops it square and saves
+// it in public/photos, plus src/data/photos.json with each photographer's credit.
+//   node scripts/flashcard-photos.mjs              all words that have no photo yet
+//   node scripts/flashcard-photos.mjs dog=2 eye    redo some words; "=2" takes the 3rd search result
+// Needs PIXABAY_API_KEY in .env and `sharp` (npm i -D sharp).
 
 import fs from "node:fs";
+import { fileURLToPath } from "node:url";
 import sharp from "sharp";
 
 const root = new URL("..", import.meta.url);
@@ -15,15 +17,22 @@ const env = Object.fromEntries(
     .filter((l) => l.includes("=") && !l.startsWith("#"))
     .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1).trim()]),
 );
-if (!env.PEXELS_API_KEY) throw new Error("Put PEXELS_API_KEY in .env first.");
+if (!env.PIXABAY_API_KEY) throw new Error("Put PIXABAY_API_KEY in .env first.");
 
 // Search terms where the word alone would bring the wrong kind of picture.
 const QUERIES = {
+  window: "open window",
+  socks: "colorful socks",
+  jeans: "blue jeans denim",
+  dress: "woman wearing long dress",
+  cheese: "cheese wedge",
+  bus: "double decker bus",
+  briefcase: "leather briefcase",
   milk: "glass of milk",
   coffee: "cup of coffee",
   water: "glass of water",
   rice: "bowl of white rice",
-  chicken: "roast chicken dish",
+  chicken: "fried chicken drumsticks",
   fish: "fish swimming",
   mouse: "mouse rodent",
   bed: "bed bedroom",
@@ -32,36 +41,36 @@ const QUERIES = {
   phone: "smartphone in hand",
   books: "stack of books",
   clock: "wall clock",
-  run: "person running",
+  run: "woman jogging",
   walk: "person walking street",
-  sleep: "person sleeping in bed",
+  sleep: "woman sleeping bed",
   eat: "person eating meal",
-  drink: "person drinking water",
+  drink: "woman drinking water glass",
   read: "person reading a book",
-  write: "hand writing in notebook",
-  swim: "person swimming pool",
+  write: "hand writing pen paper",
+  swim: "swimmer pool",
   dance: "couple dancing",
   sing: "person singing microphone",
   shirt: "t-shirt",
   cap: "baseball cap",
   eye: "human eye close up",
-  ear: "human ear close up",
+  ear: "human ear",
   nose: "human nose close up",
   mouth: "smiling lips close up",
   hand: "open hand palm",
   foot: "bare feet",
-  tooth: "white teeth smile",
-  arm: "arm muscle",
+  tooth: "teeth dentist",
+  arm: "biceps flex",
   leg: "legs walking",
-  brain: "brain anatomical model",
-  plane: "airplane flying sky",
+  brain: "brain model anatomy",
+  plane: "plane sky",
   bike: "bicycle",
-  hospital: "hospital building",
+  hospital: "hospital",
   school: "school building",
-  bank: "bank building",
+  bank: "bank facade",
   "shopping cart": "shopping cart supermarket",
-  cook: "person cooking in kitchen",
-  clean: "person cleaning house",
+  cook: "chef cooking frying pan",
+  clean: "cleaning floor mop",
   shop: "woman with shopping bags",
   call: "person on phone call",
   shower: "shower head water",
@@ -72,24 +81,24 @@ const QUERIES = {
   wave: "person waving hand hello",
   happy: "happy smiling person",
   sad: "sad person",
-  angry: "angry face",
+  angry: "angry man shouting",
   scared: "scared face",
   tired: "tired person yawning",
   sick: "sick person with thermometer",
   confused: "confused person",
-  embarrassed: "embarrassed person covering face",
+  embarrassed: "embarrassed",
   excited: "excited person celebrating",
-  nervous: "nervous person biting nails",
+  nervous: "nervous woman",
   keyboard: "computer keyboard",
   email: "email inbox on laptop",
   calendar: "calendar planner",
   chart: "business chart on screen",
   money: "cash money",
-  "paper clip": "paper clip",
+  "paper clip": "paper clip office",
   think: "person thinking",
-  shrug: "person shrugging",
+  shrug: "shrug",
   pray: "praying hands",
-  clap: "hands clapping",
+  clap: "clapping",
   hug: "people hugging",
   "lift weights": "person lifting weights gym",
   pack: "packing a suitcase",
@@ -112,24 +121,32 @@ const todo = Object.keys(picks).length ? Object.keys(picks) : words.filter((w) =
 
 for (const word of todo) {
   const query = QUERIES[word] ?? word;
-  const res = await fetch(`https://api.pexels.com/v1/search?${new URLSearchParams({ query, per_page: "8", orientation: "square" })}`, {
-    headers: { Authorization: env.PEXELS_API_KEY },
+  const params = new URLSearchParams({
+    key: env.PIXABAY_API_KEY,
+    q: query,
+    image_type: "photo",
+    safesearch: "true",
+    per_page: "10",
+    order: "popular",
   });
+  const res = await fetch(`https://pixabay.com/api/?${params}`);
   if (!res.ok) {
-    console.log(`✗ ${word}: Pexels ${res.status}`);
+    console.log(`✗ ${word}: Pixabay ${res.status}`);
     if (res.status === 429) break;
     continue;
   }
-  const { photos } = await res.json();
-  const photo = photos[picks[word] ?? 0];
+  const { hits } = await res.json();
+  const photo = hits[picks[word] ?? 0];
   if (!photo) {
     console.log(`✗ ${word}: nenhuma foto para "${query}"`);
     continue;
   }
-  const image = Buffer.from(await (await fetch(photo.src.large)).arrayBuffer());
-  await sharp(image).resize(400, 400, { fit: "cover", position: "attention" }).webp({ quality: 78 }).toFile(new URL(`public/photos/${slug(word)}.webp`, root));
-  manifest[word] = { file: `${slug(word)}.webp`, by: photo.photographer, url: photo.url };
-  console.log(`✓ ${word} ← "${query}" (#${picks[word] ?? 0}, ${photo.photographer})`);
+  const image = Buffer.from(await (await fetch(photo.webformatURL)).arrayBuffer());
+  await sharp(image).resize(400, 400, { fit: "cover", position: "attention" }).webp({ quality: 78 }).toFile(fileURLToPath(new URL(`public/photos/${slug(word)}.webp`, root)));
+  manifest[word] = { file: `${slug(word)}.webp`, by: photo.user, url: photo.pageURL };
+  console.log(`✓ ${word} ← "${query}" (#${picks[word] ?? 0}, ${photo.user})`);
+  // Pixabay allows 100 requests a minute.
+  await new Promise((r) => setTimeout(r, 700));
 }
 
 fs.writeFileSync(manifestFile, JSON.stringify(Object.fromEntries(Object.entries(manifest).sort()), null, 1) + "\n");

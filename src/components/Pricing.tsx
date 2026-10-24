@@ -1,14 +1,14 @@
 import { useState } from "react";
 import { CheckCircle, X } from "@phosphor-icons/react";
-import { brl, monthlyEquivalent, PLANS, TRIAL_DAYS, yearlySaving, type PlanId } from "../data/plans";
+import { brl, monthlyEquivalent, PLANS, PREMIUM_CHAT_MINUTES, TRIAL_DAYS, yearlySaving, type PlanId } from "../data/plans";
 import { startCheckout } from "../lib/account";
 import { Mascot } from "./Brand";
 import { IconButton } from "./ui";
 
 const BENEFITS = [
   "As 8 unidades do curso, do básico à conversa fluida",
-  "Conversa com IA sem limite por dia",
-  "Modo Kids completo: todas as rimas e o Kiko à vontade",
+  `Conversa com IA por ${PREMIUM_CHAT_MINUTES} minutos todo dia`,
+  "Modo Kids completo: todas as rimas e o Kiko",
   "Correção de pronúncia e flashcards em todas as unidades",
 ];
 
@@ -41,7 +41,7 @@ export function Pricing({ reason, hadTrial, onClose }: { reason?: string; hadTri
       <section className="pricing-hero">
         <Mascot mood="happy" size={96} />
         <span className="eyebrow">AprendeAI Premium</span>
-        <h1>Fale inglês todo dia, sem limite.</h1>
+        <h1>Fale inglês todo dia, de verdade.</h1>
         {reason && <p className="pricing-reason">{reason}</p>}
       </section>
 

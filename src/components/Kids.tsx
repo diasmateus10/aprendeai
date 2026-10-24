@@ -198,7 +198,7 @@ export function KidsApp({
           best={kids.rhymes}
           premium={premium}
           onPick={(rhyme) => setScreen({ name: "rhyme", rhyme })}
-          onLocked={() => onUpgrade("Todas as rimas e o Kiko sem limite fazem parte do Premium.")}
+          onLocked={() => onUpgrade("Todas as rimas e mais tempo com o Kiko fazem parte do Premium.")}
           onExit={home}
         />
       );

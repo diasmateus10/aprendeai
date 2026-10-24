@@ -21,7 +21,7 @@ export interface Card {
 }
 
 /** The card's 3D illustration; falls back to the plain emoji if the image fails to load. */
-/** Real photos (Pexels) for the adult words, by English word; made by scripts/pexels-photos.mjs. */
+/** Real photos (Pixabay) for the adult words, by English word; made by scripts/flashcard-photos.mjs. */
 const PHOTOS: Record<string, { file: string; by: string; url: string }> = photos;
 
 /**
@@ -38,7 +38,7 @@ function CardPicture({ emoji, word, photo }: { emoji: string; word: string; phot
         <figcaption>
           Foto:{" "}
           <a href={real.url} target="_blank" rel="noreferrer">
-            {real.by} / Pexels
+            {real.by} / Pixabay
           </a>
         </figcaption>
       </figure>
@@ -56,7 +56,6 @@ function CardPicture({ emoji, word, photo }: { emoji: string; word: string; phot
 
 /** Days until a card in each Leitner box comes back. */
 const INTERVALS = [0, 1, 3, 7, 14];
-const SESSION_SIZE = 12;
 const MAX_TRIES = 2;
 
 function addDays(days: number): string {
@@ -83,8 +82,10 @@ export function deckFor(level: Level | null): Card[] {
   return deck;
 }
 
-/** Reviews never take more than this share of a session, so new words keep showing up. */
-const MAX_REVIEW_SHARE = 0.5;
+/** New words a day: the daily habit is 10 new flashcards, then the course. */
+export const NEW_PER_DAY = 10;
+/** Reviews in one session, most overdue first; the rest wait for the next session. */
+const MAX_REVIEWS = 10;
 
 /** A shuffle that stays the same all day (re-opening keeps its order) and changes the next day. */
 function dailyShuffle<T>(items: T[], salt: string): T[] {
@@ -98,18 +99,22 @@ function dailyShuffle<T>(items: T[], salt: string): T[] {
   return a;
 }
 
+/** Words studied for the first time today (counts toward the NEW_PER_DAY habit). */
+export function newWordsToday(states: Record<string, CardState>): number {
+  const today = addDays(0);
+  return Object.values(states).filter((s) => s.seen === today).length;
+}
+
 /**
- * A session: due reviews (most overdue first, at most half the session), then new words in a daily
- * shuffled order; if there aren't enough new words, more reviews fill the rest.
+ * Today's session: due reviews (most overdue first) plus the new words left for today, up to
+ * NEW_PER_DAY, in an order shuffled once a day.
  */
 export function sessionCards(deck: Card[], states: Record<string, CardState>): Card[] {
   const today = addDays(0);
   const due = deck.filter((c) => states[c.id] && states[c.id].due <= today).sort((a, b) => states[a.id].due.localeCompare(states[b.id].due));
   const fresh = dailyShuffle(deck.filter((c) => !states[c.id]), today);
-  const reviews = due.slice(0, Math.ceil(SESSION_SIZE * MAX_REVIEW_SHARE));
-  const news = fresh.slice(0, SESSION_SIZE - reviews.length);
-  const extra = due.slice(reviews.length, reviews.length + SESSION_SIZE - reviews.length - news.length);
-  return dailyShuffle([...reviews, ...news, ...extra], today + "mix");
+  const news = fresh.slice(0, Math.max(0, NEW_PER_DAY - newWordsToday(states)));
+  return dailyShuffle([...due.slice(0, MAX_REVIEWS), ...news], today + "mix");
 }
 
 /** Words that came back right on at least two different days (Leitner box 2 or more). */
@@ -187,7 +192,7 @@ export function Flashcards({
   const rate = (grade: Grade) => {
     const prev = states[card.id]?.box ?? 0;
     const box = grade === "easy" ? Math.min(prev + 1, INTERVALS.length - 1) : grade === "hard" ? Math.max(prev, 1) : 0;
-    onRate(card.id, { box, due: addDays(grade === "miss" ? 1 : INTERVALS[box]) });
+    onRate(card.id, { box, due: addDays(grade === "miss" ? 1 : INTERVALS[box]), seen: states[card.id]?.seen ?? addDays(0) });
     if (grade !== "miss") setKnown((k) => k + 1);
     // Missed cards go to the back of this session's queue so they're seen again today.
     setQueue((q) => (grade === "miss" ? [...q.slice(1), q[0]] : q.slice(1)));
@@ -222,7 +227,7 @@ export function Flashcards({
           </p>
           <div className="result-actions">
             <button className="btn primary" onClick={onExit}>
-              Voltar
+              {cards.length ? "Seguir para a trilha" : "Voltar"}
             </button>
           </div>
         </div>

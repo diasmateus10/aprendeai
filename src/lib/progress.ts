@@ -9,6 +9,8 @@ export interface CardState {
   /** Leitner box 0..4; higher boxes come back less often. */
   box: number;
   due: string;
+  /** Day the word was first studied, to cap new words per day. */
+  seen?: string;
 }
 
 /** Progress in the Kids mode, kept apart from the adult course. */

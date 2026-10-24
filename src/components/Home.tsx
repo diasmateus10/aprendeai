@@ -20,7 +20,7 @@ import {
   Crown,
   Brain,
 } from "@phosphor-icons/react";
-import { learnedCount } from "./Flashcards";
+import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
 import { openPortal, type Subscription } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
 import { lessons, units, type Lesson, type Unit } from "../data/course";
@@ -89,7 +89,42 @@ export function Home(props: HomeProps) {
   );
 }
 
-function ContinueCard({ progress, currentIndex, onLesson, planLocked, onUpgrade }: HomeProps) {
+function ContinueCard(props: HomeProps) {
+  const { progress, dueCards, onFlashcards } = props;
+  const [skipped, setSkipped] = useState(false);
+  const done = newWordsToday(progress.cards);
+  // Daily habit: the new words first, then the course. Only while there are cards to study today.
+  if (!skipped && dueCards && done < NEW_PER_DAY) {
+    return (
+      <section className="card continue-card" style={{ "--unit": "var(--gold)" } as React.CSSProperties}>
+        <span className="eyebrow">Primeiro passo de hoje</span>
+        <div className="continue-row">
+          <span className="continue-icon">
+            <Cards size={30} weight="duotone" />
+          </span>
+          <div>
+            <h1>{done ? `Faltam ${NEW_PER_DAY - done} palavras novas` : `${NEW_PER_DAY} palavras novas de hoje`}</h1>
+            <p className="hint">Veja a foto e diga a palavra em inglês. Depois, siga para a lição da trilha.</p>
+          </div>
+        </div>
+        <div className="unit-progress" aria-label={`${done} de ${NEW_PER_DAY} palavras novas hoje`}>
+          {Array.from({ length: NEW_PER_DAY }, (_, i) => (
+            <span key={i} className={i < done ? "on" : ""} />
+          ))}
+        </div>
+        <button className="btn primary block lg" onClick={onFlashcards}>
+          {done ? "Continuar flashcards" : "Começar flashcards"}
+        </button>
+        <button className="link" onClick={() => setSkipped(true)}>
+          Ir direto para a lição
+        </button>
+      </section>
+    );
+  }
+  return <LessonCard {...props} />;
+}
+
+function LessonCard({ progress, currentIndex, onLesson, planLocked, onUpgrade }: HomeProps) {
   if (currentIndex < 0) {
     return (
       <section className="card continue-card done">
@@ -246,7 +281,7 @@ function Activities({ currentIndex, dueCards, onChat, onFlashcards, onGuide }: H
         <button className="activity" onClick={onFlashcards} disabled={dueCards === 0}>
           <Cards size={26} weight="duotone" className="coral" />
           <strong>Flashcards</strong>
-          <span>{dueCards ? `${dueCards} para revisar` : "Tudo revisado hoje"}</span>
+          <span>{dueCards ? `${dueCards} cartões hoje` : "Tudo feito hoje"}</span>
         </button>
       )}
       <button className="activity" onClick={() => onGuide(unit)}>
@@ -382,7 +417,7 @@ function AccountMenu({ progress, email, subscription, onPlacement, onKids, onSig
             <Crown size={22} weight="fill" className="gold" />
             <span>
               <strong>Seja Premium</strong>
-              <span className="hint">Curso completo e conversa sem limite</span>
+              <span className="hint">Curso completo e 30 min de conversa por dia</span>
             </span>
           </button>
         )}
