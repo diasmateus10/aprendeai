@@ -3137,3 +3137,14 @@ button:disabled {
 .picture-photo a {
   color: inherit;
 }
+
+.legal-links {
+  margin: 0;
+  text-align: center;
+  font-size: var(--fs-xs);
+  color: var(--muted);
+}
+
+.legal-links a {
+  color: inherit;
+}

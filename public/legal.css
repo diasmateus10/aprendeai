@@ -1,0 +1,67 @@
+/* Privacy policy and terms: plain reading pages in the app's colors and fonts. */
+@import url("https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700;800&family=Figtree:wght@400;600&display=swap");
+
+:root {
+  color-scheme: dark;
+  --bg: #14110f;
+  --text: #f6efe6;
+  --muted: #a89c90;
+  --primary: #ff6b4a;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Figtree", system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+}
+
+main {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 32px 20px 64px;
+}
+
+.brand {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  font-weight: 800;
+  font-size: 22px;
+  color: var(--text);
+  text-decoration: none;
+}
+
+h1,
+h2 {
+  font-family: "Bricolage Grotesque", system-ui, sans-serif;
+  line-height: 1.2;
+}
+
+h1 {
+  font-size: 32px;
+  margin: 24px 0 4px;
+}
+
+h2 {
+  font-size: 20px;
+  margin-top: 32px;
+}
+
+.updated {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+a {
+  color: var(--primary);
+}
+
+li {
+  margin-bottom: 8px;
+}
+
+.links {
+  margin-top: 40px;
+  color: var(--muted);
+}

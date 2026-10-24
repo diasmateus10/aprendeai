@@ -452,6 +452,10 @@ function AccountMenu({ progress, email, subscription, onPlacement, onKids, onSig
             <strong>Sair da conta</strong>
           </span>
         </ConfirmButton>
+
+        <p className="legal-links">
+          <a href="/privacidade">Privacidade</a> · <a href="/termos">Termos de Uso</a>
+        </p>
       </div>
     </div>
   );

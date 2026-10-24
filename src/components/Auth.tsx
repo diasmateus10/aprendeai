@@ -149,6 +149,9 @@ export function AuthScreen() {
         ) : (
           <p className="hint small">Se você já usava o app neste aparelho, seu progresso vai junto para a conta.</p>
         )}
+        <p className="legal-links">
+          Ao continuar, você concorda com os <a href="/termos">Termos de Uso</a> e a <a href="/privacidade">Política de Privacidade</a>.
+        </p>
       </section>
     </div>
   );
