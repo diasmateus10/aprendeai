@@ -15,15 +15,19 @@ import { reportStudy } from "./lib/push";
 import { AuthScreen, NewPasswordScreen } from "./components/Auth";
 import {
   hasPremiumGrant,
+  loadLatestReport,
   loadRemote,
+  markReportSeen,
   loadSubscription,
   saveRemote,
   signOut,
   supabase,
   syncBilling,
+  type ProgressReport,
   type Session,
   type Subscription,
 } from "./lib/account";
+import { ReportScreen } from "./components/Report";
 import { Pricing } from "./components/Pricing";
 import { FREE_UNITS, PREMIUM_STATUSES } from "./data/plans";
 import type { Topic } from "./data/topics";
@@ -49,6 +53,7 @@ type Screen =
   | { name: "chat"; topic: Topic }
   | { name: "path" }
   | { name: "themes" }
+  | { name: "report" }
   | { name: "guide"; unit: Unit }
   | { name: "lesson"; lesson: LessonT }
   | { name: "result"; lesson: LessonT; result: LessonResult; xp: number };
@@ -71,6 +76,7 @@ export default function App() {
   const [welcomePremium, setWelcomePremium] = useState(false);
   /** Premium given for free (no Stripe subscription behind it). */
   const [granted, setGranted] = useState(false);
+  const [report, setReport] = useState<ProgressReport | null>(null);
   const premium = granted || PREMIUM_STATUSES.includes(subscription?.status ?? "");
 
   const update = (p: Progress) => {
@@ -108,6 +114,7 @@ export default function App() {
       if (params.has("checkout")) history.replaceState(null, "", location.pathname);
       setSubscription(await loadSubscription(userId).catch(() => null));
       setGranted(await hasPremiumGrant(userId).catch(() => false));
+      setReport(await loadLatestReport(userId).catch(() => null));
       if (cancelled) return;
       onProgressSaved((next) => saveRemote(userId, next));
       saveProgress(p);
@@ -303,6 +310,10 @@ export default function App() {
     );
   }
 
+  if (screen.name === "report" && report) {
+    return <ReportScreen report={report} onExit={() => setScreen({ name: "path" })} />;
+  }
+
   if (screen.name === "themes") {
     return (
       <ThemePicker
@@ -486,6 +497,16 @@ export default function App() {
       email={session.user.email ?? ""}
       path={path}
       lessons={lessons}
+      report={report}
+      premium={premium}
+      onReport={() => {
+        if (!report) return;
+        if (!report.seen_at) {
+          void markReportSeen(report.id);
+          setReport({ ...report, seen_at: new Date().toISOString() });
+        }
+        setScreen({ name: "report" });
+      }}
       onThemes={() => setScreen({ name: "themes" })}
       currentIndex={currentIndex}
       isUnlocked={isUnlocked}

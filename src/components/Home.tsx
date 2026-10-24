@@ -19,9 +19,10 @@ import {
   PencilSimple,
   Crown,
   Brain,
+  ChartLineUp,
 } from "@phosphor-icons/react";
 import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
-import { openPortal, type Subscription } from "../lib/account";
+import { openPortal, type ProgressReport, type Subscription } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
 import type { Lesson, Unit } from "../data/course";
 import { levelInfo } from "../data/levels";
@@ -41,6 +42,10 @@ export interface HomeProps {
   lessons: Lesson[];
   /** Opens the theme picker. */
   onThemes(): void;
+  /** Latest weekly progress report (Premium). */
+  report: ProgressReport | null;
+  premium: boolean;
+  onReport(): void;
   /** Index in `lessons` of the next lesson to do, or -1 when the course is done. */
   currentIndex: number;
   isUnlocked(lessonIndex: number): boolean;
@@ -79,6 +84,7 @@ export function Home(props: HomeProps) {
       <div className="home-body">
         <ContinueCard {...props} />
         <Numbers progress={progress} />
+        <ReportCard {...props} />
         <GoalCard progress={progress} onGoal={props.onGoal} />
         <ReminderCard lastDay={progress.lastDay} streak={progress.streak} hideWhenOn />
         <Activities {...props} />
@@ -177,6 +183,36 @@ function LessonCard({ progress, path, lessons, currentIndex, onLesson, planLocke
         </button>
       )}
     </section>
+  );
+}
+
+function ReportCard({ report, premium, onReport, onUpgrade }: HomeProps) {
+  if (premium && report) {
+    return (
+      <button className="activity feature report-card" onClick={onReport}>
+        <ChartLineUp size={26} weight="duotone" className="coral" />
+        <span className="activity-text">
+          <strong>
+            Seu relatório da semana {!report.seen_at && <span className="new-tag">Novo</span>}
+          </strong>
+          <span>{report.report.headline}</span>
+        </span>
+        <CaretRight size={20} weight="bold" />
+      </button>
+    );
+  }
+  if (premium) return null;
+  return (
+    <button className="activity feature report-card locked" onClick={() => onUpgrade("O relatório semanal do seu inglês faz parte do Premium.")}>
+      <ChartLineUp size={26} weight="duotone" className="muted" />
+      <span className="activity-text">
+        <strong>Relatório semanal do seu inglês</strong>
+        <span>Todo domingo, a IA analisa suas conversas e mostra o que melhorou e o que treinar.</span>
+      </span>
+      <span className="premium-tag">
+        <Crown size={14} weight="fill" /> Premium
+      </span>
+    </button>
   );
 }
 

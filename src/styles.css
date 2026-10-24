@@ -3203,3 +3203,73 @@ button:disabled {
   justify-content: space-between;
   gap: 12px;
 }
+
+/* Weekly progress report */
+
+.report-card.locked strong {
+  color: var(--muted);
+}
+
+.new-tag {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: #fff;
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  vertical-align: middle;
+}
+
+.report-headline {
+  font-size: var(--fs-xl);
+  line-height: 1.25;
+  margin: 4px 0 16px;
+}
+
+.report-numbers {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.report-section {
+  margin-top: 12px;
+}
+
+.report-section h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 8px;
+}
+
+.report-section ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.report-section li {
+  display: grid;
+  gap: 4px;
+}
+
+.report-section li > span,
+.report-goal p {
+  color: var(--muted);
+  margin: 0;
+}
+
+.report-change {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.report-example {
+  font-size: var(--fs-sm);
+  opacity: 0.85;
+}

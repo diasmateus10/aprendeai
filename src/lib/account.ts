@@ -123,6 +123,37 @@ export async function loadSubscription(userId: string): Promise<Subscription | n
   return data;
 }
 
+export interface ProgressReport {
+  id: string;
+  week_start: string;
+  seen_at: string | null;
+  report: {
+    headline: string;
+    improved: { point: string; before: string; now: string }[];
+    focus: { point: string; tip: string; example: string }[];
+    next_goal: string;
+    stats: { conversations: number; minutes: number; lines: number };
+  };
+}
+
+/** The latest weekly progress report (Premium), if it is from the last two weeks. */
+export async function loadLatestReport(userId: string): Promise<ProgressReport | null> {
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const { data } = await supabase
+    .from("progress_reports")
+    .select("id, week_start, seen_at, report")
+    .eq("user_id", userId)
+    .gte("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return data;
+}
+
+export async function markReportSeen(id: string) {
+  await supabase.from("progress_reports").update({ seen_at: new Date().toISOString() }).eq("id", id);
+}
+
 /** Premium given without payment (premium_grants), checked alongside the subscription. */
 export async function hasPremiumGrant(userId: string): Promise<boolean> {
   const { data } = await supabase.from("premium_grants").select("user_id").eq("user_id", userId).maybeSingle();
