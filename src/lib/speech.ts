@@ -231,7 +231,9 @@ const SERVER_MAX_CHARS = 600;
 /** Speaks the text; resolves when it finishes, fails or is interrupted by another speak()/stopSpeaking(). */
 export function speak(text: string, slow = false): Promise<void> {
   const id = speakId + 1;
+  trace(`voice speak "${text.slice(0, 30)}"`);
   return speakLine(text, slow).finally(() => {
+    trace(`voice done${id === speakId ? "" : " (cut off)"}`);
     // The mic must not open the instant a line ends (see listen).
     if (id === speakId) quietSince = Date.now();
   });
@@ -412,12 +414,21 @@ const SILENCE_MS = 1800;
 const MAX_LISTEN_MS = 20000;
 /** After stop(), how long the browser gets to report before we finish ourselves (iOS may never call onend). */
 const END_GRACE_MS = 1500;
-/** Gap between speech ending and the mic opening. Opened right as a line ends, the iPhone's audio is still
- * switching over and the mic records nothing, which made the hands-free conversation deaf after the first turn. */
-const AFTER_SPEECH_MS = isIOS ? 700 : 300;
+/** Gap between speech ending and the mic opening: opened right as a line ends, the mic can record nothing. */
+const AFTER_SPEECH_MS = 300;
 /** The browser never confirmed the mic opened by then: report "no-start" instead of pretending to listen. */
 const START_CONFIRM_MS = 2500;
 let micEverStarted = false;
+
+/** Recent mic and voice events, shown in the conversation with ?debug: the mic fails on devices we can't test on. */
+export const speechLog: string[] = [];
+let logStart = 0;
+
+function trace(msg: string) {
+  logStart ||= Date.now();
+  speechLog.push(`${((Date.now() - logStart) / 1000).toFixed(1)}s ${msg}`);
+  if (speechLog.length > 80) speechLog.shift();
+}
 
 /** Listens for one English utterance and reports all recognition alternatives. Always ends: onFinal and
  * onEnd are called exactly once, even when the browser stalls, which happens on iPhone. */
@@ -448,6 +459,7 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   const finish = () => {
     if (ended) return;
     ended = true;
+    trace(`mic end (${delivered ? "delivered" : lastInterim ? `interim "${lastInterim}"` : "nothing heard"})`);
     timers.forEach(clearTimeout);
     clearTimeout(silence);
     // Safari often shows the words as interim results and never marks them final: use them.
@@ -473,6 +485,7 @@ export function listen(cb: ListenCallbacks): ListenHandle {
 
   rec.onresult = (e) => {
     const result = e.results[e.results.length - 1];
+    trace(`mic ${result.isFinal ? "final" : "interim"} "${result[0]?.transcript}"`);
     if (result.isFinal) {
       const alts: string[] = [];
       for (let i = 0; i < result.length; i++) alts.push(result[i].transcript);
@@ -489,11 +502,19 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   rec.onstart = () => {
     started = true;
     micEverStarted = true;
+    trace("mic onstart");
   };
-  rec.onerror = (e) => cb.onError?.(e.error);
-  rec.onend = finish;
+  rec.onerror = (e) => {
+    trace(`mic error ${e.error}`);
+    cb.onError?.(e.error);
+  };
+  rec.onend = () => {
+    trace("mic onend");
+    finish();
+  };
   const begin = () => {
     if (ended) return;
+    trace(`mic start (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
     later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
     later(stop, MAX_LISTEN_MS);
     later(() => {
@@ -509,8 +530,9 @@ export function listen(cb: ListenCallbacks): ListenHandle {
     }, START_CONFIRM_MS);
     try {
       rec.start();
-    } catch {
+    } catch (err) {
       // A previous recognition still holding the mic: end cleanly so the learner can tap again.
+      trace(`mic start threw ${(err as Error).message}`);
       cb.onError?.("no-start");
       finish();
     }

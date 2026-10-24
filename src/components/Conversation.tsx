@@ -7,7 +7,7 @@ import { imageFor } from "../data/vocab";
 import { authHeaders } from "../lib/account";
 import { PAYWALL_MARK } from "../data/plans";
 import type { Level } from "../lib/progress";
-import { isIOS, listen, usingServerVoice, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
+import { isIOS, listen, usingServerVoice, speak, speechLog, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
 interface Turn {
   role: "user" | "assistant";
@@ -147,6 +147,12 @@ const MIC_FATAL: Record<string, string> = {
   network: "O reconhecimento de voz precisa de internet.",
 };
 
+/** The iPhone only listens reliably when the mic is opened by a tap: a mic reopened on its own after the
+ * partner spoke heard nothing, so there each answer starts with a tap on the orb. */
+const HANDS_FREE = !isIOS;
+
+const debug = typeof location !== "undefined" && location.search.includes("debug");
+
 export function Conversation({
   topic,
   level,
@@ -260,6 +266,10 @@ export function Conversation({
         setInterim("");
         setPhase("idle");
         if (heard || !liveRef.current || endedRef.current) return;
+        if (!HANDS_FREE) {
+          setMicError("Não ouvi nada. Toque na bolinha e fale de novo.");
+          return;
+        }
         // Silence just ends a recognition session; reopen it so the mic stays open. Give up if it keeps failing instantly.
         fastFails.current = Date.now() - began < 1000 ? fastFails.current + 1 : 0;
         if (fastFails.current >= 3) {
@@ -288,7 +298,7 @@ export function Conversation({
     await speak(text, slow);
     if (id !== sayId.current) return;
     setPhase("idle");
-    if (liveRef.current) startListening();
+    if (liveRef.current && HANDS_FREE) startListening();
   };
 
   const send = async (history: Turn[]) => {
@@ -380,10 +390,14 @@ export function Conversation({
     send(history);
   };
 
-  /** Speaking → interrupt and talk; listening → pause; paused → start listening again. */
+  /** Speaking → interrupt and talk; listening → send what was heard, or pause; paused → start listening again. */
   const tapOrb = () => {
     if (ended || phase === "thinking") return;
     if (phase === "listening") {
+      if (interim.trim()) {
+        mic.current?.stop();
+        return;
+      }
       setLive(false);
       stopMic();
       setPhase("idle");
@@ -407,10 +421,14 @@ export function Conversation({
   const mm = Math.max(left, 0);
   const clock = `${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, "0")}`;
   const orbLabel = {
-    listening: "Ouvindo… pode falar",
+    listening: interim ? "Ouvindo… toque para enviar" : "Ouvindo… pode falar",
     thinking: "Pensando…",
-    speaking: "Falando… toque para interromper",
-    idle: turns.some((t) => t.role === "user") ? "Toque na bolinha para continuar" : "Toque na bolinha e fale",
+    speaking: HANDS_FREE ? "Falando… toque para interromper" : "Falando… toque para responder",
+    idle: !turns.some((t) => t.role === "user")
+      ? "Toque na bolinha e fale"
+      : HANDS_FREE
+        ? "Toque na bolinha para continuar"
+        : "Sua vez: toque na bolinha e responda",
   }[phase];
 
   return (
@@ -500,6 +518,11 @@ export function Conversation({
               Concluir
             </button>
           </div>
+        )}
+        {debug && (
+          <pre className="hint small" style={{ whiteSpace: "pre-wrap", userSelect: "text" }}>
+            {`${navigator.userAgent}\nphase=${phase} live=${live}\n${speechLog.join("\n")}`}
+          </pre>
         )}
         <div ref={bottom} />
       </main>
