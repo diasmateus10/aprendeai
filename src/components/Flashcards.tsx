@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { playComplete, playCorrect, playWrong } from "../lib/sounds";
 import { ArrowLeft, Cards, CheckCircle, Lightbulb, Microphone, Stop, X } from "@phosphor-icons/react";
 import { Mascot } from "./Brand";
 import { SoundButtons } from "./ui";
@@ -184,6 +185,11 @@ export function Flashcards({
   onExit(): void;
 }) {
   const [queue, setQueue] = useState(cards);
+  const finished = cards.length > 0 && queue.length === 0;
+  // The session's last card: celebrate once.
+  useEffect(() => {
+    if (finished) playComplete();
+  }, [finished]);
   /** To tell, at the end, how many words this session moved to "learned". */
   const learnedAtStart = useRef(learnedCount(states));
   const [known, setKnown] = useState(0);
@@ -273,9 +279,11 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
     setHeard(alternatives[0]);
     if (matches(card, alternatives)) {
       setPhase("right");
-      speak(card.en);
+      playCorrect();
+      setTimeout(() => speak(card.en), 350);
       return;
     }
+    playWrong();
     const n = tries + 1;
     setTries(n);
     if (n >= MAX_TRIES) reveal();

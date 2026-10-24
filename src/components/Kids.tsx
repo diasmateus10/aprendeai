@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { playComplete, playCorrect, playWrong } from "../lib/sounds";
 import { ArrowLeft, Crown, Gift, Microphone, MusicNotes, Star, Stop, Users, X } from "@phosphor-icons/react";
 import { Mascot } from "./Brand";
 import { FREE_RHYMES } from "../data/plans";
@@ -458,18 +459,23 @@ function ListenTap({
     if (solved) return;
     if (item.en !== round.answer.en) {
       setWrong((w) => [...w, item.en]);
-      speak(round.answer.en);
+      playWrong();
+      setTimeout(() => speak(round.answer.en), 300);
       return;
     }
     setSolved(true);
+    playCorrect();
     // A star only when found on the first try.
     if (wrong.length === 0) {
       right.current++;
       onStar();
     }
-    speak(`Yes! ${round.answer.en}!`);
+    setTimeout(() => speak(`Yes! ${round.answer.en}!`), 350);
     setTimeout(() => {
-      if (i + 1 >= rounds.length) return onDone(right.current);
+      if (i + 1 >= rounds.length) {
+        playComplete();
+        return onDone(right.current);
+      }
       setI(i + 1);
       setWrong([]);
       setSolved(false);
@@ -635,8 +641,12 @@ function RhymePlay({
         if (s.accuracy >= pass) {
           passed.current++;
           onLine(seconds);
-          speak("Great job!");
-        } else onSeconds(seconds);
+          playCorrect();
+          setTimeout(() => speak("Great job!"), 350);
+        } else {
+          playWrong();
+          onSeconds(seconds);
+        }
       },
       onError: (e) => {
         if (e === "not-allowed" || e === "service-not-allowed") setMicError("Peça para um adulto liberar o microfone no navegador.");
@@ -655,6 +665,7 @@ function RhymePlay({
       onLine(0);
     }
     if (i + 1 >= rhyme.lines.length) {
+      playComplete();
       const ratio = passed.current / rhyme.lines.length;
       onDone(ratio >= 0.8 ? 3 : ratio >= 0.5 ? 2 : 1);
       return;

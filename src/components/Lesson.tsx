@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { playComplete, playCorrect, playWrong } from "../lib/sounds";
 import { Heart, SpeakerHigh, X } from "@phosphor-icons/react";
 import { buildLesson, type Lesson as LessonT } from "../data/course";
 import { ExerciseView, type Outcome } from "./Exercises";
@@ -27,6 +28,7 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
 
   const answer = (o: Outcome) => {
     setOutcome(o);
+    if (!o.skipped) (o.correct ? playCorrect : playWrong)();
     if (o.correct && !o.skipped) setCorrect((c) => c + 1);
     if (!o.correct) {
       setHearts((h) => h - 1);
@@ -42,6 +44,7 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
       return;
     }
     if (index + 1 >= queue.length) {
+      playComplete();
       onDone({ correct, total: initial.length, speakingSeconds, failed: false });
       return;
     }
