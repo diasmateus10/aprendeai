@@ -13,8 +13,8 @@ export interface PlanInfo {
 }
 
 export const PLANS: PlanInfo[] = [
-  { id: "monthly", label: "Mensal", amount: 1990, interval: "month", lookupKey: "aprendeai_premium_monthly" },
-  { id: "yearly", label: "Anual", amount: 14900, interval: "year", lookupKey: "aprendeai_premium_yearly" },
+  { id: "monthly", label: "Mensal", amount: 999, interval: "month", lookupKey: "aprendeai_premium_monthly" },
+  { id: "yearly", label: "Anual", amount: 8990, interval: "year", lookupKey: "aprendeai_premium_yearly" },
 ];
 
 export const TRIAL_DAYS = 7;

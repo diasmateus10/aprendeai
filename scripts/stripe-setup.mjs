@@ -22,8 +22,8 @@ const mode = key.startsWith("sk_live_") ? "PRODUÇÃO" : "TESTE";
 
 // Keep in sync with src/data/plans.ts.
 const PLANS = [
-  { lookupKey: "aprendeai_premium_monthly", amount: 1990, interval: "month", nickname: "Mensal" },
-  { lookupKey: "aprendeai_premium_yearly", amount: 14900, interval: "year", nickname: "Anual" },
+  { lookupKey: "aprendeai_premium_monthly", amount: 999, interval: "month", nickname: "Mensal" },
+  { lookupKey: "aprendeai_premium_yearly", amount: 8990, interval: "year", nickname: "Anual" },
 ];
 
 const products = await stripe.products.search({ query: "metadata['app']:'aprendeai'" });
@@ -39,18 +39,23 @@ console.log(`[${mode}] produto: ${product.id}`);
 const prices = {};
 for (const p of PLANS) {
   const found = (await stripe.prices.list({ lookup_keys: [p.lookupKey], active: true, limit: 1 })).data[0];
-  const price =
-    found ??
-    (await stripe.prices.create({
-      product: product.id,
-      currency: "brl",
-      unit_amount: p.amount,
-      recurring: { interval: p.interval },
-      lookup_key: p.lookupKey,
-      nickname: p.nickname,
-    }));
+  const current = found && found.unit_amount === p.amount && found.recurring?.interval === p.interval;
+  // Stripe prices can't change amount: a new price takes over the lookup key and the old one is archived.
+  // Existing subscribers keep their old price until they switch plans.
+  const price = current
+    ? found
+    : await stripe.prices.create({
+        product: product.id,
+        currency: "brl",
+        unit_amount: p.amount,
+        recurring: { interval: p.interval },
+        lookup_key: p.lookupKey,
+        transfer_lookup_key: true,
+        nickname: p.nickname,
+      });
+  if (found && !current) await stripe.prices.update(found.id, { active: false });
   prices[p.lookupKey] = price.id;
-  console.log(`[${mode}] preço ${p.nickname}: ${price.id} (${found ? "já existia" : "criado"})`);
+  console.log(`[${mode}] preço ${p.nickname} R$ ${(p.amount / 100).toFixed(2)}: ${price.id} (${current ? "já existia" : found ? "novo; o antigo foi arquivado" : "criado"})`);
 }
 
 // Customer Portal: change card, see invoices, switch monthly/yearly, cancel at the end of the period.
