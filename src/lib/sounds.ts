@@ -1,20 +1,8 @@
 // Feedback sounds (right, wrong, finished), synthesized in code as small WAV files: no files to download.
-// They play through <audio> elements rather than the Web Audio API because iOS treats media elements as
+// They play through an <audio> element rather than the Web Audio API because iOS treats media elements as
 // media (they play with the silent switch on), while Web Audio follows the switch.
 
-type SessionType = "auto" | "playback";
-type AudioSessionNav = Navigator & { audioSession?: { type: string } };
-
-/** iOS (Safari 17+): "playback" makes sounds play even with the silent switch on; "auto" lets the mic work. */
-export function setAudioSession(type: SessionType) {
-  const session = typeof navigator === "undefined" ? undefined : (navigator as AudioSessionNav).audioSession;
-  if (!session || session.type === type) return;
-  try {
-    session.type = type;
-  } catch {
-    // Older browsers: nothing to do.
-  }
-}
+import { playEffect } from "./speech";
 
 type Wave = "triangle" | "sine";
 type Note = { freq: number; at: number; length: number; volume: number; wave: Wave };
@@ -67,45 +55,13 @@ const SOUNDS = {
 };
 type Sound = keyof typeof SOUNDS;
 
-const players: Partial<Record<Sound, HTMLAudioElement>> = {};
+const urls: Partial<Record<Sound, string>> = {};
 
-function player(sound: Sound): HTMLAudioElement | null {
-  if (typeof Audio === "undefined") return null;
-  return (players[sound] ??= Object.assign(new Audio(URL.createObjectURL(render(SOUNDS[sound]))), { preload: "auto" }));
-}
-
-// iOS only lets a media element play later (answers spoken into the mic arrive with no tap) once it has
-// played from a tap, so on the first tap every player is played muted and stopped right away.
-if (typeof window !== "undefined") {
-  const events = ["click", "touchend", "keydown"] as const;
-  const unlock = () => {
-    events.forEach((e) => window.removeEventListener(e, unlock, true));
-    setAudioSession("playback");
-    (Object.keys(SOUNDS) as Sound[]).forEach((s) => {
-      const el = player(s);
-      if (!el) return;
-      el.muted = true;
-      el.play()
-        .then(() => {
-          el.pause();
-          el.currentTime = 0;
-        })
-        .catch(() => {})
-        .finally(() => {
-          el.muted = false;
-        });
-    });
-  };
-  events.forEach((e) => window.addEventListener(e, unlock, true));
-}
-
+// They share the speech module's <audio> element: iOS plays one media element at a time and only lets an
+// element play from code once it has played during a tap, which that module takes care of.
 function play(sound: Sound) {
-  const el = player(sound);
-  if (!el) return;
-  setAudioSession("playback");
-  el.muted = false;
-  el.currentTime = 0;
-  void el.play().catch(() => {});
+  if (typeof URL === "undefined") return;
+  playEffect((urls[sound] ??= URL.createObjectURL(render(SOUNDS[sound]))));
 }
 
 export const playCorrect = () => play("correct");

@@ -1,7 +1,5 @@
 // Text-to-speech (escuta) and speech recognition (fala) via the Web Speech API.
 
-import { setAudioSession } from "./sounds";
-
 let cachedVoice: SpeechSynthesisVoice | null = null;
 /** "en-US" or "en-GB", chosen by the learner; drives the TTS voice and speech recognition. */
 let accent = "en-US";
@@ -187,6 +185,28 @@ if (player) {
       .catch(() => {});
   };
   events.forEach((e) => window.addEventListener(e, unlock, true));
+}
+
+/** Plays a short clip (feedback sounds) on the unlocked element, unless the server voice is speaking on it. */
+export function playEffect(url: string) {
+  if (!player || endPlayback) return;
+  setAudioSession("playback");
+  player.onended = player.onerror = null;
+  player.src = url;
+  void player.play().catch(() => {});
+}
+
+type AudioSessionNav = Navigator & { audioSession?: { type: string } };
+
+/** iOS (Safari 17+): "playback" plays sounds even with the silent switch on; "auto" lets the mic work. */
+export function setAudioSession(type: "auto" | "playback") {
+  const session = typeof navigator === "undefined" ? undefined : (navigator as AudioSessionNav).audioSession;
+  if (!session || session.type === type) return;
+  try {
+    session.type = type;
+  } catch {
+    // Older browsers: nothing to do.
+  }
 }
 
 function stopPlayback() {
