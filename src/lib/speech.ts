@@ -1,5 +1,7 @@
 // Text-to-speech (escuta) and speech recognition (fala) via the Web Speech API.
 
+import { setAudioSession } from "./sounds";
+
 let cachedVoice: SpeechSynthesisVoice | null = null;
 /** "en-US" or "en-GB", chosen by the learner; drives the TTS voice and speech recognition. */
 let accent = "en-US";
@@ -395,6 +397,8 @@ export function listen(cb: ListenCallbacks): ListenHandle {
     if (!delivered) cb.onFinal([]);
     cb.onEnd?.();
   };
+  // A "playback" audio session (for sounds in silent mode) would block the mic on iOS.
+  setAudioSession("auto");
   rec.start();
   return { stop: () => rec.stop(), abort: () => rec.abort() };
 }

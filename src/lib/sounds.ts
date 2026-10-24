@@ -3,8 +3,23 @@
 type Ctx = AudioContext;
 let ctx: Ctx | null = null;
 
+type SessionType = "auto" | "playback";
+type AudioSessionNav = Navigator & { audioSession?: { type: string } };
+
+/** iOS (Safari 17+): "playback" makes sounds play even with the silent switch on; "auto" lets the mic work. */
+export function setAudioSession(type: SessionType) {
+  const session = typeof navigator === "undefined" ? undefined : (navigator as AudioSessionNav).audioSession;
+  if (!session || session.type === type) return;
+  try {
+    session.type = type;
+  } catch {
+    // Older browsers: sounds follow the silent switch.
+  }
+}
+
 function audio(): Ctx | null {
   if (typeof window === "undefined") return null;
+  setAudioSession("playback");
   const Ctor = window.AudioContext ?? (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
   if (!Ctor) return null;
   ctx ??= new Ctor();
