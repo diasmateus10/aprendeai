@@ -2,6 +2,7 @@
 // the last study day, and notifies around 19h when the learner hasn't studied yet that day.
 
 import { VAPID_PUBLIC_KEY } from "../data/push";
+import { authHeaders } from "./account";
 
 const ENDPOINT_KEY = "aprendeai.push.endpoint";
 const REPORTED_KEY = "aprendeai.push.reported";
@@ -53,8 +54,9 @@ function base64UrlToBytes(b64: string): Uint8Array<ArrayBuffer> {
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 
-const post = (body: unknown) =>
-  fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+// Signed in, the device is linked to the account, so it can also get notices about the account (trial ending).
+const post = async (body: unknown) =>
+  fetch("/api/push", { method: "POST", headers: { "Content-Type": "application/json", ...(await authHeaders()) }, body: JSON.stringify(body) });
 
 /** Asks for permission (call it from a tap) and registers this device; `lastDay`/`streak` seed the first reminder. */
 export async function enableReminders(lastDay: string | null, streak: number): Promise<PushState> {

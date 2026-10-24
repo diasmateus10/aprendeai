@@ -75,7 +75,7 @@ Answer with only a JSON object, no markdown, in this exact shape:
  "next_focus": "1 or 2 sentences in English telling a conversation partner what to make the learner practice next, e.g. 'Ask about last weekend so they use simple past irregular verbs (went, ate, saw).'"}
 Use at most 4 weak points. If there is too little speech to judge, keep the current profile as it is.`;
 
-/** Runs the insights agent over the learner's recent conversations and saves the new profile. */
+/** Runs the insights agent over the learner's recent conversations and saves the new profile; throws on failure. */
 export async function updateInsights(client: Anthropic, userId: string) {
   const supabase = db();
   if (!supabase) return;
@@ -97,29 +97,24 @@ export async function updateInsights(client: Anthropic, userId: string) {
     })
     .join("\n\n");
   const profile = current ? JSON.stringify({ summary: current.summary, weak_points: current.weak_points, next_focus: current.next_focus }) : "none yet";
-  try {
-    const response = await client.messages.create({
-      model: INSIGHTS_MODEL,
-      max_tokens: 2048,
-      system: INSIGHTS_PROMPT,
-      messages: [{ role: "user", content: `Current profile: ${profile}\n\nRecent conversations:\n\n${transcripts}` }],
-    });
-    const text = response.content.map((b) => (b.type === "text" ? b.text : "")).join("");
-    const parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)) as Insights;
-    if (typeof parsed.summary !== "string" || !Array.isArray(parsed.weak_points) || typeof parsed.next_focus !== "string") {
-      throw new Error("unexpected shape");
-    }
-    const { error } = await supabase.from("learner_insights").upsert({
-      user_id: userId,
-      summary: parsed.summary,
-      weak_points: parsed.weak_points.slice(0, 4),
-      next_focus: parsed.next_focus,
-      sessions_analyzed: (current?.sessions_analyzed ?? 0) + 1,
-      updated_at: new Date().toISOString(),
-    });
-    if (error) throw new Error(error.message);
-  } catch (e) {
-    // The profile just stays as it was; the next conversation tries again.
-    console.error("[history] insights failed:", (e as Error).message);
+  const response = await client.messages.create({
+    model: INSIGHTS_MODEL,
+    max_tokens: 2048,
+    system: INSIGHTS_PROMPT,
+    messages: [{ role: "user", content: `Current profile: ${profile}\n\nRecent conversations:\n\n${transcripts}` }],
+  });
+  const text = response.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+  const parsed = JSON.parse(text.slice(text.indexOf("{"), text.lastIndexOf("}") + 1)) as Insights;
+  if (typeof parsed.summary !== "string" || !Array.isArray(parsed.weak_points) || typeof parsed.next_focus !== "string") {
+    throw new Error("unexpected shape");
   }
+  const { error } = await supabase.from("learner_insights").upsert({
+    user_id: userId,
+    summary: parsed.summary,
+    weak_points: parsed.weak_points.slice(0, 4),
+    next_focus: parsed.next_focus,
+    sessions_analyzed: (current?.sessions_analyzed ?? 0) + 1,
+    updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.message);
 }

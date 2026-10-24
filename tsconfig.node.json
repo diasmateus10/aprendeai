@@ -8,5 +8,5 @@
     "skipLibCheck": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "server", "api"]
+  "include": ["vite.config.ts", "trigger.config.ts", "server", "api", "trigger"]
 }

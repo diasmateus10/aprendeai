@@ -1,11 +1,12 @@
 // Daily study reminders: devices subscribe to Web Push, the app reports each study day, and a daily
 // cron (vercel.json) notifies everyone who hasn't studied yet that day, mentioning their streak.
+// Devices of signed-in learners are linked to the account, for notices about it (sendToUser).
 
 import type { IncomingMessage, ServerResponse } from "node:http";
 import webpush from "web-push";
 import type { Plugin } from "vite";
 import { VAPID_PUBLIC_KEY } from "../src/data/push.js";
-import { db } from "./db.js";
+import { db, userFromRequest } from "./db.js";
 import { readBody } from "./chat.js";
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
@@ -40,7 +41,7 @@ function parse(raw: string): PushBody | null {
   }
 }
 
-export async function handlePush(rawBody: string, res: ServerResponse) {
+export async function handlePush(req: IncomingMessage, rawBody: string, res: ServerResponse) {
   const supabase = db();
   if (!supabase) {
     res.statusCode = 503;
@@ -54,6 +55,8 @@ export async function handlePush(rawBody: string, res: ServerResponse) {
     return;
   }
   const now = new Date().toISOString();
+  const user = body.action === "unsubscribe" ? null : await userFromRequest(req);
+  const owner = user ? { user_id: user.id } : {};
   const { error } =
     body.action === "subscribe"
       ? await supabase.from("push_subscriptions").upsert({
@@ -63,11 +66,12 @@ export async function handlePush(rawBody: string, res: ServerResponse) {
           last_study_day: body.day,
           streak: body.streak,
           updated_at: now,
+          ...owner,
         })
       : body.action === "studied"
         ? await supabase
             .from("push_subscriptions")
-            .update({ last_study_day: body.day, streak: body.streak, updated_at: now })
+            .update({ last_study_day: body.day, streak: body.streak, updated_at: now, ...owner })
             .eq("endpoint", body.endpoint)
         : await supabase.from("push_subscriptions").delete().eq("endpoint", body.endpoint);
   if (error) {
@@ -95,14 +99,40 @@ function message(lastStudy: string | null, streak: number): { title: string; bod
   return { title: "🦜 Hora do inglês!", body: "Que tal 5 minutinhos de prática hoje? Ouvir e falar todo dia faz diferença." };
 }
 
-/** Sends today's reminders; returns how many went out. */
-export async function sendReminders(): Promise<{ sent: number; removed: number }> {
+function setupPush() {
   const supabase = db();
   // Pasted keys often carry stray spaces or quotes; the key itself is 43 base64url characters.
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim().replace(/^["']|["']$/g, "");
   if (!supabase || !privateKey) throw new Error("SUPABASE_SECRET_KEY and VAPID_PRIVATE_KEY are required");
   // The contact push services see; the site's address keeps personal emails out of it.
   webpush.setVapidDetails(process.env.VAPID_SUBJECT || "https://aprendeai-ruby.vercel.app", VAPID_PUBLIC_KEY, privateKey);
+  return supabase;
+}
+
+/** Sends a notification to every device linked to the account; returns how many got it. */
+export async function sendToUser(userId: string, title: string, body: string, url = "/"): Promise<number> {
+  const supabase = setupPush();
+  const { data, error } = await supabase.from("push_subscriptions").select("endpoint, p256dh, auth").eq("user_id", userId);
+  if (error) throw new Error(error.message);
+  let sent = 0;
+  for (const s of data ?? []) {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, JSON.stringify({ title, body, url }), {
+        TTL: 12 * 3600,
+      });
+      sent++;
+    } catch (e) {
+      const status = (e as { statusCode?: number }).statusCode;
+      if (status === 404 || status === 410) await supabase.from("push_subscriptions").delete().eq("endpoint", s.endpoint);
+      else throw e;
+    }
+  }
+  return sent;
+}
+
+/** Sends today's reminders; returns how many went out. */
+export async function sendReminders(): Promise<{ sent: number; removed: number }> {
+  const supabase = setupPush();
 
   const today = brDay();
   const { data, error } = await supabase
@@ -166,7 +196,7 @@ export async function handleCron(req: IncomingMessage, res: ServerResponse) {
 export function pushApi(): Plugin {
   const middleware = (req: IncomingMessage, res: ServerResponse, next: () => void) => {
     if (req.url === "/api/push" && req.method === "POST") {
-      readBody(req).then((raw) => handlePush(raw, res));
+      readBody(req).then((raw) => handlePush(req, raw, res));
       return;
     }
     if (req.url === "/api/cron/reminders" && req.method === "GET") {

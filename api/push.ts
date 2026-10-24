@@ -13,5 +13,5 @@ export default async function handler(req: IncomingMessage & { body?: unknown },
   // Vercel may have parsed the JSON body already; otherwise read the raw stream.
   const raw =
     req.body === undefined ? await readBody(req) : typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-  await handlePush(raw, res);
+  await handlePush(req, raw, res);
 }

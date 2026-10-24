@@ -8,7 +8,8 @@ import { TOPICS } from "../src/data/topics.js";
 import { stylePrompt, type AiStyle } from "../src/data/aiStyle.js";
 import { KIDS_TOPICS } from "../src/data/kids.js";
 import { activeMinutes, allow, isPremium, userFromRequest } from "./db.js";
-import { isSessionId, partnerNotes, saveConversation, saveFeedback, updateInsights } from "./history.js";
+import { isSessionId, partnerNotes, saveConversation, saveFeedback } from "./history.js";
+import { queueInsights } from "./jobs.js";
 import { FREE_CHATS_PER_DAY, PAYWALL_MARK, PREMIUM_CHAT_MINUTES } from "../src/data/plans.js";
 
 // Haiku is the fastest and cheapest model, which suits short spoken replies on a public link.
@@ -262,7 +263,7 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
       if (body.mode === "chat") await saveConversation(user.id, body.sessionId, body.topic, body.level, body.messages, reply);
       else {
         await saveFeedback(user.id, body.sessionId, reply);
-        await updateInsights(client, user.id);
+        await queueInsights(client, user.id);
       }
     }
     res.end();

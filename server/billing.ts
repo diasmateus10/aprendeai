@@ -8,6 +8,7 @@ import type { Plugin } from "vite";
 import { PLANS, TRIAL_DAYS, type PlanId } from "../src/data/plans.js";
 import { readBody } from "./chat.js";
 import { db, userFromRequest } from "./db.js";
+import { scheduleTrialReminder } from "./jobs.js";
 
 let stripe: Stripe | null = null;
 
@@ -140,6 +141,12 @@ const SUBSCRIPTION_EVENTS = new Set([
   "invoice.payment_failed",
 ]);
 
+async function remindBeforeTrialEnds(customerId: string, sub: Stripe.Subscription) {
+  if (sub.status !== "trialing" || !sub.trial_end) return;
+  const { data } = await db()!.from("subscriptions").select("user_id").eq("stripe_customer_id", customerId).maybeSingle();
+  if (data) await scheduleTrialReminder(data.user_id, sub.id, new Date(sub.trial_end * 1000));
+}
+
 /** Verifies and applies a Stripe webhook; returns the HTTP status to answer with. */
 export async function processWebhook(rawBody: string, signature: string | null): Promise<number> {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
@@ -163,6 +170,7 @@ export async function processWebhook(rawBody: string, signature: string | null):
       console.error("[billing] webhook sync failed:", (e as Error).message);
       return 500;
     }
+    if (event.type === "customer.subscription.created" && customer) await remindBeforeTrialEnds(customer, event.data.object as Stripe.Subscription);
   }
   return 200;
 }
