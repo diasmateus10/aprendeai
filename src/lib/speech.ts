@@ -268,10 +268,23 @@ export function speak(text: string, slow = false): Promise<void> {
   });
 }
 
+/** "Devagar": half speed (0.6 was still too fast for beginners, above all on iPhone). */
+const SLOW_RATE = 0.5;
+
+/** "Devagar" also says short sentences word by word (longer ones two words at a time), with a pause between. */
+function slowParts(text: string): string[] {
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= 1) return words;
+  const size = words.length <= 8 ? 1 : 2;
+  const out: string[] = [];
+  for (let i = 0; i < words.length; i += size) out.push(words.slice(i, i + size).join(" "));
+  return out;
+}
+
 /** Speaks with the device's own voices (Web Speech API). */
 function speakWithDevice(text: string, slow: boolean, id: number): Promise<void> {
   return new Promise((resolve) => {
-    const parts = chunk(text);
+    const parts = slow ? slowParts(text) : chunk(text);
     if (!ttsSupported || parts.length === 0) return resolve();
     const synth = window.speechSynthesis;
     const interrupting = synth.speaking || synth.pending;
@@ -309,7 +322,7 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
       };
       // Safety net, restarted per voice: some engines never fire onend, which would stall the hands-free conversation.
       clearTimeout(timer);
-      timer = setTimeout(done, 4000 + text.length * (slow ? 150 : 90));
+      timer = setTimeout(done, 4000 + text.length * (slow ? 300 : 90));
       // Online voices (Google's in Chrome, Microsoft's "Natural" ones in Edge) sometimes stay silent without an error.
       clearTimeout(startTimer);
       let silent = false;
@@ -323,8 +336,8 @@ function speakWithDevice(text: string, slow: boolean, id: number): Promise<void>
         const u = new SpeechSynthesisUtterance(p);
         if (voice) u.voice = voice;
         u.lang = voice?.lang ?? accent;
-        // Neural voices sound most natural at their normal speed; slowing them down is what "🐢" is for.
-        u.rate = slow ? 0.6 : 1;
+        // Neural voices sound most natural at their normal speed; slowing them down is what "Devagar" is for.
+        u.rate = slow ? SLOW_RATE : 1;
         if (i === 0) u.onstart = () => mine === attempt && clearTimeout(startTimer);
         if (i === parts.length - 1) u.onend = () => mine === attempt && done();
         u.onerror = (e) => {
