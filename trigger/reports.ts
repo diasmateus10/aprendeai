@@ -14,7 +14,7 @@ export const weeklyReport = task({
     const report = await writeWeeklyReport(new Anthropic(), payload.userId);
     if (!report) return { written: false };
     // A device problem shouldn't rerun the report: the notice is best effort.
-    const sent = await sendToUser(payload.userId, "Seu relatório da semana chegou", report.headline).catch(() => 0);
+    const sent = await sendToUser(payload.userId, "Seu relatório da semana chegou", report.headline, "/?relatorio").catch(() => 0);
     return { written: true, sent };
   },
 });

@@ -19,8 +19,10 @@ self.addEventListener("notificationclick", (event) => {
   const url = event.notification.data?.url || "/";
   event.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => {
+      // An open app is sent to the notice's page (e.g. the weekly report), not just brought to the front.
       const open = windows.find((w) => "focus" in w);
-      return open ? open.focus() : self.clients.openWindow(url);
+      if (!open) return self.clients.openWindow(url);
+      return ("navigate" in open ? open.navigate(url).catch(() => open) : Promise.resolve(open)).then((w) => (w || open).focus());
     }),
   );
 });

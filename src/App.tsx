@@ -77,6 +77,14 @@ export default function App() {
   /** Premium given for free (no Stripe subscription behind it). */
   const [granted, setGranted] = useState(false);
   const [report, setReport] = useState<ProgressReport | null>(null);
+  const openReport = (r: ProgressReport) => {
+    if (!r.seen_at) {
+      void markReportSeen(r.id);
+      r = { ...r, seen_at: new Date().toISOString() };
+    }
+    setReport(r);
+    setScreen({ name: "report" });
+  };
   const premium = granted || PREMIUM_STATUSES.includes(subscription?.status ?? "");
 
   const update = (p: Progress) => {
@@ -96,6 +104,15 @@ export default function App() {
   // On sign-in, the account's progress replaces this device's copy; a brand-new account starts from
   // what the device already had. From then on every save also goes to the account.
   const userId = session?.user.id ?? null;
+  // A report written while the app sat open in the background (common on the phone) shows up when it comes back.
+  useEffect(() => {
+    if (!userId) return;
+    const refresh = () => {
+      if (document.visibilityState === "visible") loadLatestReport(userId).then(setReport, () => {});
+    };
+    document.addEventListener("visibilitychange", refresh);
+    return () => document.removeEventListener("visibilitychange", refresh);
+  }, [userId]);
   useEffect(() => {
     if (!userId) {
       onProgressSaved(null);
@@ -114,12 +131,17 @@ export default function App() {
       if (params.has("checkout")) history.replaceState(null, "", location.pathname);
       setSubscription(await loadSubscription(userId).catch(() => null));
       setGranted(await hasPremiumGrant(userId).catch(() => false));
-      setReport(await loadLatestReport(userId).catch(() => null));
+      const latest = await loadLatestReport(userId).catch(() => null);
+      setReport(latest);
+      // Opened from the weekly report notification (?relatorio): straight to the report.
+      const fromNotice = params.has("relatorio");
+      if (fromNotice) history.replaceState(null, "", location.pathname);
       if (cancelled) return;
       onProgressSaved((next) => saveRemote(userId, next));
       saveProgress(p);
       setProgress(p);
       setScreen(p.level ? { name: "path" } : { name: "welcome" });
+      if (fromNotice && latest && p.level) openReport(latest);
       setSyncedUser(userId);
     };
     loadRemote(userId)
@@ -499,14 +521,7 @@ export default function App() {
       lessons={lessons}
       report={report}
       premium={premium}
-      onReport={() => {
-        if (!report) return;
-        if (!report.seen_at) {
-          void markReportSeen(report.id);
-          setReport({ ...report, seen_at: new Date().toISOString() });
-        }
-        setScreen({ name: "report" });
-      }}
+      onReport={() => report && openReport(report)}
       onThemes={() => setScreen({ name: "themes" })}
       currentIndex={currentIndex}
       isUnlocked={isUnlocked}
