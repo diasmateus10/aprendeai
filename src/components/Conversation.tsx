@@ -147,9 +147,8 @@ const MIC_FATAL: Record<string, string> = {
   network: "O reconhecimento de voz precisa de internet.",
 };
 
-/** The iPhone only listens reliably when the mic is opened by a tap: a mic reopened on its own after the
- * partner spoke heard nothing, so there each answer starts with a tap on the orb. */
-const HANDS_FREE = !isIOS;
+/** Released sooner than this: the learner tapped instead of holding the orb. */
+const SHORT_PRESS_MS = 400;
 
 const debug = typeof location !== "undefined" && location.search.includes("debug");
 
@@ -179,9 +178,9 @@ export function Conversation({
   const [streaming, setStreaming] = useState<string | null>(null);
   const [left, setLeft] = useState(seconds);
   const [phase, setPhaseState] = useState<Phase>("thinking");
-  // Hands-free once started: the first tap opens the mic (browsers want a tap for it), and from then on
-  // it reopens by itself after the partner speaks, like a phone call.
-  const [live, setLiveState] = useState(false);
+  // Push-to-talk: the mic listens while the orb is held and the answer goes when it's released. Opened
+  // from the press itself, it works on the iPhone, where a mic opened on its own (hands-free) heard nothing.
+  const [holding, setHolding] = useState(false);
   const [interim, setInterim] = useState("");
   const [draft, setDraft] = useState("");
   const [typing, setTyping] = useState(!sttSupported);
@@ -196,9 +195,8 @@ export function Conversation({
   const started = useRef(Date.now());
   const bottom = useRef<HTMLDivElement>(null);
 
-  // The hands-free loop runs in callbacks that outlive the render they were created in, so it reads refs.
+  // Mic and voice callbacks outlive the render they were created in, so they read refs.
   const phaseRef = useRef<Phase>("thinking");
-  const liveRef = useRef(live);
   const turnsRef = useRef(turns);
   const endedRef = useRef(ended);
   turnsRef.current = turns;
@@ -207,14 +205,8 @@ export function Conversation({
     phaseRef.current = p;
     setPhaseState(p);
   };
-  const setLive = (on: boolean) => {
-    liveRef.current = on;
-    setLiveState(on);
-  };
-  /** Recognition sessions in a row that ended right away without hearing anything. */
-  const fastFails = useRef(0);
-  /** Recognition sessions in a row where the mic didn't open or heard nothing at all. */
-  const deafRuns = useRef(0);
+  /** When the orb was pressed, to tell a tap from a hold. */
+  const pressedAt = useRef(0);
   /** Bumped whenever a line is spoken or interrupted, so a stale say() doesn't reopen the mic. */
   const sayId = useRef(0);
 
@@ -234,63 +226,41 @@ export function Conversation({
     setInterim("");
     setMicError(null);
     setPhase("listening");
-    const began = Date.now();
     let heard = false;
-    let gotSound = false;
-    let noStart = false;
-    const handle: ListenHandle = listen({
-      onInterim: (t) => {
-        if (mic.current !== handle) return;
-        gotSound = true;
-        setInterim(t);
+    const handle: ListenHandle = listen(
+      {
+        onInterim: (t) => mic.current === handle && setInterim(t),
+        onFinal: (alts) => {
+          const said = alts.find((a) => a.trim());
+          if (mic.current !== handle || !said) return;
+          heard = true;
+          mic.current = null;
+          submit(said);
+        },
+        onError: (e) => {
+          if (mic.current !== handle || !MIC_FATAL[e]) return;
+          setMicError(MIC_FATAL[e]);
+        },
+        onEnd: () => {
+          if (mic.current !== handle) return;
+          mic.current = null;
+          setInterim("");
+          setHolding(false);
+          setPhase("idle");
+          if (heard || endedRef.current) return;
+          setMicError(
+            Date.now() - pressedAt.current < SHORT_PRESS_MS
+              ? "Segure a bolinha enquanto fala e solte quando terminar."
+              : "Não ouvi nada. Segure a bolinha, fale e solte.",
+          );
+        },
       },
-      onFinal: (alts) => {
-        const said = alts.find((a) => a.trim());
-        if (mic.current !== handle || !said) return;
-        heard = true;
-        fastFails.current = 0;
-        deafRuns.current = 0;
-        mic.current = null;
-        submit(said);
-      },
-      onError: (e) => {
-        if (mic.current !== handle) return;
-        if (e === "no-start") noStart = true;
-        if (!MIC_FATAL[e]) return;
-        setLive(false);
-        setMicError(MIC_FATAL[e]);
-      },
-      onEnd: () => {
-        if (mic.current !== handle) return;
-        mic.current = null;
-        setInterim("");
-        setPhase("idle");
-        if (heard || !liveRef.current || endedRef.current) return;
-        if (!HANDS_FREE) {
-          setMicError("Não ouvi nada. Toque na bolinha e fale de novo.");
-          return;
-        }
-        // Silence just ends a recognition session; reopen it so the mic stays open. Give up if it keeps failing instantly.
-        fastFails.current = Date.now() - began < 1000 ? fastFails.current + 1 : 0;
-        if (fastFails.current >= 3) {
-          setLive(false);
-          return;
-        }
-        // A mic that didn't open or keeps hearing nothing would show "Ouvindo…" forever: pause and ask for a
-        // tap, which also opens it reliably on iPhone.
-        deafRuns.current = noStart || !gotSound ? deafRuns.current + 1 : 0;
-        if (deafRuns.current >= 3) {
-          setLive(false);
-          setMicError(noStart ? "O microfone não abriu sozinho. Toque na bolinha para falar." : "Não ouvi nada. Toque na bolinha quando quiser falar.");
-          return;
-        }
-        setTimeout(() => liveRef.current && phaseRef.current === "idle" && startListening(), 150);
-      },
-    });
+      { hold: true },
+    );
     mic.current = handle;
   };
 
-  /** Speaks a line, then reopens the mic when the conversation is hands-free. */
+  /** Speaks a line; the learner answers by holding the orb. */
   const say = async (text: string, slow = false) => {
     const id = ++sayId.current;
     stopMic();
@@ -298,7 +268,6 @@ export function Conversation({
     await speak(text, slow);
     if (id !== sayId.current) return;
     setPhase("idle");
-    if (liveRef.current && HANDS_FREE) startListening();
   };
 
   const send = async (history: Turn[]) => {
@@ -390,26 +359,22 @@ export function Conversation({
     send(history);
   };
 
-  /** Speaking → interrupt and talk; listening → send what was heard, or pause; paused → start listening again. */
-  const tapOrb = () => {
-    if (ended || phase === "thinking") return;
-    if (phase === "listening") {
-      if (interim.trim()) {
-        mic.current?.stop();
-        return;
-      }
-      setLive(false);
-      stopMic();
-      setPhase("idle");
-      return;
-    }
+  /** Pressing the orb cuts the partner off and opens the mic, inside the press (the iPhone needs that). */
+  const pressOrb = () => {
+    if (ended || phase === "thinking" || mic.current) return;
+    pressedAt.current = Date.now();
     sayId.current++;
     stopSpeaking();
-    setLive(true);
-    fastFails.current = 0;
-    deafRuns.current = 0;
+    setHolding(true);
     setPhase("idle");
     startListening();
+  };
+
+  /** Letting go sends what was heard. */
+  const releaseOrb = () => {
+    if (!holding) return;
+    setHolding(false);
+    mic.current?.stop();
   };
 
   /** Replays a message; the mic stays closed meanwhile so it doesn't hear the partner's voice. */
@@ -421,14 +386,10 @@ export function Conversation({
   const mm = Math.max(left, 0);
   const clock = `${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, "0")}`;
   const orbLabel = {
-    listening: interim ? "Ouvindo… toque para enviar" : "Ouvindo… pode falar",
+    listening: holding ? "Ouvindo… solte para enviar" : "Enviando…",
     thinking: "Pensando…",
-    speaking: HANDS_FREE ? "Falando… toque para interromper" : "Falando… toque para responder",
-    idle: !turns.some((t) => t.role === "user")
-      ? "Toque na bolinha e fale"
-      : HANDS_FREE
-        ? "Toque na bolinha para continuar"
-        : "Sua vez: toque na bolinha e responda",
+    speaking: "Falando… segure a bolinha para responder",
+    idle: "Segure a bolinha enquanto fala",
   }[phase];
 
   return (
@@ -521,7 +482,7 @@ export function Conversation({
         )}
         {debug && (
           <pre className="hint small" style={{ whiteSpace: "pre-wrap", userSelect: "text" }}>
-            {`${navigator.userAgent}\nphase=${phase} live=${live}\n${speechLog.join("\n")}`}
+            {`${navigator.userAgent}\nphase=${phase} holding=${holding}\n${speechLog.join("\n")}`}
           </pre>
         )}
         <div ref={bottom} />
@@ -531,7 +492,21 @@ export function Conversation({
         <footer className="convo-footer">
           {sttSupported && (
             <div className="orb-panel">
-              <button className={`orb ${phase} ${live ? "live" : ""}`} onClick={tapOrb} disabled={phase === "thinking"} aria-label={orbLabel}>
+              <button
+                className={`orb ${phase} ${holding ? "live" : ""}`}
+                onPointerDown={(e) => {
+                  // Keeps the release on the orb even if the finger slides off it.
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  pressOrb();
+                }}
+                onPointerUp={releaseOrb}
+                onPointerCancel={releaseOrb}
+                onKeyDown={(e) => (e.key === " " || e.key === "Enter") && !e.repeat && (e.preventDefault(), pressOrb())}
+                onKeyUp={(e) => (e.key === " " || e.key === "Enter") && releaseOrb()}
+                onContextMenu={(e) => e.preventDefault()}
+                disabled={phase === "thinking"}
+                aria-label={orbLabel}
+              >
                 <span className="orb-core" />
               </button>
               <p className={`orb-label ${micError ? "warn" : ""}`}>{micError ?? orbLabel}</p>

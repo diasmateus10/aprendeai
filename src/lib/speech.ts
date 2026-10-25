@@ -399,6 +399,12 @@ export interface ListenHandle {
   abort(): void;
 }
 
+export interface ListenOptions {
+  /** Push-to-talk: listens until stop() (the finger leaves the button), however long the pauses, and then
+   * delivers everything heard. */
+  hold?: boolean;
+}
+
 export interface ListenCallbacks {
   onInterim?(text: string): void;
   onFinal(alternatives: string[]): void;
@@ -412,6 +418,8 @@ const NO_SPEECH_MS = 8000;
 const SILENCE_MS = 1800;
 /** Longest answer. */
 const MAX_LISTEN_MS = 20000;
+/** Longest push-to-talk answer. */
+const MAX_HOLD_MS = 60000;
 /** After stop(), how long the browser gets to report before we finish ourselves (iOS may never call onend). */
 const END_GRACE_MS = 1500;
 /** Gap between speech ending and the mic opening: opened right as a line ends, the mic can record nothing. */
@@ -432,7 +440,7 @@ function trace(msg: string) {
 
 /** Listens for one English utterance and reports all recognition alternatives. Always ends: onFinal and
  * onEnd are called exactly once, even when the browser stalls, which happens on iPhone. */
-export function listen(cb: ListenCallbacks): ListenHandle {
+export function listen(cb: ListenCallbacks, { hold = false }: ListenOptions = {}): ListenHandle {
   const Ctor = getRecognitionCtor();
   if (!Ctor) {
     cb.onError?.("not-supported");
@@ -443,7 +451,7 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   rec.lang = accent;
   rec.interimResults = true;
   rec.maxAlternatives = 5;
-  rec.continuous = false;
+  rec.continuous = hold;
   let delivered = false;
   let ended = false;
   let lastInterim = "";
@@ -484,6 +492,13 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   };
 
   rec.onresult = (e) => {
+    if (hold) {
+      // Everything said while the button is held, final parts and the one still being recognized.
+      lastInterim = Array.from(e.results, (r) => r[0]?.transcript ?? "").join(" ").replace(/\s+/g, " ").trim();
+      trace(`mic hold "${lastInterim}"`);
+      cb.onInterim?.(lastInterim);
+      return;
+    }
     const result = e.results[e.results.length - 1];
     trace(`mic ${result.isFinal ? "final" : "interim"} "${result[0]?.transcript}"`);
     if (result.isFinal) {
@@ -514,9 +529,9 @@ export function listen(cb: ListenCallbacks): ListenHandle {
   };
   const begin = () => {
     if (ended) return;
-    trace(`mic start (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
-    later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
-    later(stop, MAX_LISTEN_MS);
+    trace(`mic start${hold ? " hold" : ""} (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
+    if (!hold) later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
+    later(stop, hold ? MAX_HOLD_MS : MAX_LISTEN_MS);
     later(() => {
       // Before the mic first opened on this page, the permission prompt may be what's taking long.
       if (started || ended || !micEverStarted) return;
