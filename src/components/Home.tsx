@@ -21,6 +21,7 @@ import {
   Crown,
   Brain,
   ChartLineUp,
+  Bell,
 } from "@phosphor-icons/react";
 import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
 import { deleteAccount, openPortal, type ProgressReport, type Subscription } from "../lib/account";
@@ -77,15 +78,17 @@ export function Home(props: HomeProps) {
     <div className="home">
       <header className="topbar">
         <Logo size={30} />
-        <button className="avatar-btn" onClick={() => setMenu(true)} aria-label="Abrir menu da conta" title="Conta">
-          {initial}
-        </button>
+        <div className="topbar-actions">
+          <Notices {...props} />
+          <button className="avatar-btn" onClick={() => setMenu(true)} aria-label="Abrir menu da conta" title="Conta">
+            {initial}
+          </button>
+        </div>
       </header>
 
       <div className="home-body">
         <ContinueCard {...props} />
         <Numbers progress={progress} />
-        <ReportCard {...props} />
         <GoalCard progress={progress} onGoal={props.onGoal} />
         <ReminderCard lastDay={progress.lastDay} streak={progress.streak} hideWhenOn />
         <Activities {...props} />
@@ -187,33 +190,72 @@ function LessonCard({ progress, path, lessons, currentIndex, onLesson, planLocke
   );
 }
 
-function ReportCard({ report, premium, onReport, onUpgrade }: HomeProps) {
-  if (premium && report) {
-    return (
-      <button className="activity feature report-card" onClick={onReport}>
-        <ChartLineUp size={26} weight="duotone" className="coral" />
-        <span className="activity-text">
-          <strong>
-            Seu relatório da semana {!report.seen_at && <span className="new-tag">Novo</span>}
-          </strong>
-          <span>{report.report.headline}</span>
-        </span>
-        <CaretRight size={20} weight="bold" />
-      </button>
-    );
-  }
-  if (premium) return null;
+/** Notifications under the bell (top right): the weekly progress report (Premium), with a dot while unread. */
+function Notices({ report, premium, onReport, onUpgrade }: HomeProps) {
+  const [open, setOpen] = useState(false);
+  const unread = premium && !!report && !report.seen_at;
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
+  const week = report && new Date(`${report.week_start}T12:00:00`).toLocaleDateString("pt-BR", { day: "numeric", month: "long" });
   return (
-    <button className="activity feature report-card locked" onClick={() => onUpgrade("O relatório semanal do seu inglês faz parte do Premium.")}>
-      <ChartLineUp size={26} weight="duotone" className="muted" />
-      <span className="activity-text">
-        <strong>Relatório semanal do seu inglês</strong>
-        <span>Todo domingo, a IA analisa suas conversas e mostra o que melhorou e o que treinar.</span>
-      </span>
-      <span className="premium-tag">
-        <Crown size={14} weight="fill" /> Premium
-      </span>
-    </button>
+    <>
+      <button
+        className="bell-btn"
+        onClick={() => setOpen(!open)}
+        aria-label={unread ? "Notificações: relatório novo" : "Notificações"}
+        aria-expanded={open}
+        title="Notificações"
+      >
+        <Bell size={22} weight={unread ? "fill" : "bold"} />
+        {unread && <span className="bell-dot" aria-hidden="true" />}
+      </button>
+      {open && (
+        <div className="notice-backdrop" onClick={() => setOpen(false)}>
+          <div className="notice-panel" role="dialog" aria-label="Notificações" onClick={(e) => e.stopPropagation()}>
+            <h2>Notificações</h2>
+            {premium && report ? (
+              <button
+                className={`notice ${unread ? "unread" : ""}`}
+                onClick={() => {
+                  setOpen(false);
+                  onReport();
+                }}
+              >
+                <ChartLineUp size={24} weight="duotone" className="coral" />
+                <span className="notice-text">
+                  <strong>Relatório da semana de {week}</strong>
+                  <span>{report.report.headline}</span>
+                </span>
+                {unread && <span className="bell-dot inline" aria-label="Não lido" />}
+              </button>
+            ) : premium ? (
+              <p className="hint">Seu relatório chega todo domingo à noite, depois de uma semana conversando com a IA.</p>
+            ) : (
+              <button
+                className="notice"
+                onClick={() => {
+                  setOpen(false);
+                  onUpgrade("O relatório semanal do seu inglês faz parte do Premium.");
+                }}
+              >
+                <ChartLineUp size={24} weight="duotone" className="muted" />
+                <span className="notice-text">
+                  <strong>Relatório semanal do seu inglês</strong>
+                  <span>Todo domingo, a IA analisa suas conversas e mostra o que melhorou e o que treinar.</span>
+                </span>
+                <span className="premium-tag">
+                  <Crown size={14} weight="fill" /> Premium
+                </span>
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+    </>
   );
 }
 
