@@ -7,7 +7,7 @@ import { imageFor } from "../data/vocab";
 import { authHeaders } from "../lib/account";
 import { PAYWALL_MARK } from "../data/plans";
 import type { Level } from "../lib/progress";
-import { isIOS, listen, usingServerVoice, speak, speechLog, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
+import { isIOS, listen, usingServerVoice, speak, speakingPaused, speechLog, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 
 interface Turn {
   role: "user" | "assistant";
@@ -183,7 +183,7 @@ export function Conversation({
   const [holding, setHolding] = useState(false);
   const [interim, setInterim] = useState("");
   const [draft, setDraft] = useState("");
-  const [typing, setTyping] = useState(!sttSupported);
+  const [typing, setTyping] = useState(!sttSupported || speakingPaused());
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
@@ -207,6 +207,8 @@ export function Conversation({
   };
   /** When the orb was pressed, to tell a tap from a hold. */
   const pressedAt = useRef(0);
+  /** Holds in a row where the mic heard nothing: after two, the keyboard opens so the conversation goes on. */
+  const deafHolds = useRef(0);
   /** Bumped whenever a line is spoken or interrupted, so a stale say() doesn't reopen the mic. */
   const sayId = useRef(0);
 
@@ -234,6 +236,7 @@ export function Conversation({
           const said = alts.find((a) => a.trim());
           if (mic.current !== handle || !said) return;
           heard = true;
+          deafHolds.current = 0;
           mic.current = null;
           submit(said);
         },
@@ -248,11 +251,15 @@ export function Conversation({
           setHolding(false);
           setPhase("idle");
           if (heard || endedRef.current) return;
-          setMicError(
-            Date.now() - pressedAt.current < SHORT_PRESS_MS
-              ? "Segure a bolinha enquanto fala e solte quando terminar."
-              : "Não ouvi nada. Segure a bolinha, fale e solte.",
-          );
+          if (Date.now() - pressedAt.current < SHORT_PRESS_MS) {
+            setMicError("Segure a bolinha enquanto fala e solte quando terminar.");
+            return;
+          }
+          deafHolds.current++;
+          if (deafHolds.current >= 2) {
+            setTyping(true);
+            setMicError("Não estou conseguindo ouvir. Digite sua resposta abaixo, ou segure a bolinha e tente de novo.");
+          } else setMicError("Não ouvi nada. Segure a bolinha, fale e solte.");
         },
       },
       { hold: true },

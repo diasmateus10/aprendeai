@@ -3,7 +3,7 @@ import { ChatCircleDots, Lightbulb, Microphone, Stop } from "@phosphor-icons/rea
 import { Mascot } from "./Brand";
 import { SoundButtons } from "./ui";
 import type { Exchange, Exercise, Phrase } from "../data/course";
-import { listen, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
+import { listen, pauseSpeaking, speak, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
 import { scoreSpeech, scoreTyped, SPEAK_PASS, TYPE_PASS, type Score } from "../lib/score";
 
 export interface Outcome {
@@ -13,6 +13,8 @@ export interface Outcome {
   solution?: string;
   /** Skipped speaking exercises cost no heart. */
   skipped?: boolean;
+  /** "Não posso falar agora": the rest of the speaking exercises become writing for a while. */
+  noMic?: boolean;
 }
 
 interface Props {
@@ -284,8 +286,13 @@ function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeaki
 
   const stop = () => handle.current?.stop();
   const skip = () => onAnswer({ correct: true, skipped: true, message: "Pulado — sem perder vida.", solution });
+  const noMic = () => {
+    handle.current?.abort();
+    pauseSpeaking();
+    onAnswer({ correct: true, skipped: true, noMic: true, message: "Sem problema: por 15 minutos, os exercícios de fala viram escrita.", solution });
+  };
 
-  return { recording, interim, score, tries, error, start, stop, skip };
+  return { recording, interim, score, tries, error, start, stop, skip, noMic };
 }
 
 function MicPanel({ s, locked }: { s: ReturnType<typeof useSpeaking>; locked: boolean }) {
@@ -330,7 +337,7 @@ function MicPanel({ s, locked }: { s: ReturnType<typeof useSpeaking>; locked: bo
       )}
       {s.error && <p className="warn">{s.error}</p>}
       {!locked && (
-        <button className="link" onClick={s.skip}>
+        <button className="btn secondary block" onClick={s.noMic}>
           Não posso falar agora
         </button>
       )}

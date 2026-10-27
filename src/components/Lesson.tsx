@@ -1,12 +1,19 @@
 import { useMemo, useState } from "react";
 import { playComplete, playCorrect, playWrong } from "../lib/sounds";
 import { Heart, SpeakerHigh, X } from "@phosphor-icons/react";
-import { buildLesson, type Lesson as LessonT } from "../data/course";
+import { buildLesson, type Exercise, type Lesson as LessonT } from "../data/course";
 import { allUnits } from "../data/themes";
 import { ExerciseView, type Outcome } from "./Exercises";
-import { speak, stopSpeaking } from "../lib/speech";
+import { speak, speakingPaused, stopSpeaking } from "../lib/speech";
 
 const HEARTS = 5;
+
+/** With speaking paused ("Não posso falar agora"), each speaking exercise is practiced in writing instead. */
+function toWriting(ex: Exercise): Exercise {
+  if (ex.kind === "repeat" || ex.kind === "speak_translate") return { kind: "dictation", phrase: ex.phrase };
+  if (ex.kind === "respond") return { kind: "dictation", phrase: { en: ex.exchange.answers[0], pt: ex.exchange.answerPt } };
+  return ex;
+}
 
 export interface LessonResult {
   correct: number;
@@ -16,7 +23,10 @@ export interface LessonResult {
 }
 
 export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): void; onDone(r: LessonResult): void }) {
-  const initial = useMemo(() => buildLesson(lesson, allUnits), [lesson]);
+  const initial = useMemo(() => {
+    const exercises = buildLesson(lesson, allUnits);
+    return speakingPaused() ? exercises.map(toWriting) : exercises;
+  }, [lesson]);
   const [queue, setQueue] = useState(initial);
   const [index, setIndex] = useState(0);
   const [hearts, setHearts] = useState(HEARTS);
@@ -29,6 +39,7 @@ export function Lesson({ lesson, onExit, onDone }: { lesson: LessonT; onExit(): 
 
   const answer = (o: Outcome) => {
     setOutcome(o);
+    if (o.noMic) setQueue((q) => q.map((ex, i) => (i > index ? toWriting(ex) : ex)));
     if (!o.skipped) (o.correct ? playCorrect : playWrong)();
     if (o.correct && !o.skipped) setCorrect((c) => c + 1);
     if (!o.correct) {

@@ -456,6 +456,45 @@ export interface ListenCallbacks {
   onEnd?(): void;
 }
 
+const NO_MIC_KEY = "aprendeai.noMicUntil";
+
+/** "Não posso falar agora": speaking exercises turn into writing for a while. */
+export function pauseSpeaking(minutes = 15) {
+  try {
+    localStorage.setItem(NO_MIC_KEY, String(Date.now() + minutes * 60_000));
+  } catch {
+    // Private mode: only this lesson changes.
+  }
+}
+
+export function speakingPaused(): boolean {
+  try {
+    return Number(localStorage.getItem(NO_MIC_KEY) ?? 0) > Date.now();
+  } catch {
+    return false;
+  }
+}
+
+/** iPhone: after the app plays any sound (recorded voice, chimes, the AI's voice) the audio stays set up for
+ * playing only, and a mic opened then records nothing: the first answer worked, the next ones never did.
+ * Before listening, the audio element lets go of its clip and Safari is asked for play-and-record. */
+function freeAudioForMic() {
+  if (player && !endPlayback) {
+    player.pause();
+    player.removeAttribute("src");
+    player.load();
+  }
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
+  if (session && session.type !== "play-and-record") {
+    try {
+      session.type = "play-and-record";
+      trace("audio session play-and-record");
+    } catch {
+      // Older Safari: nothing to set.
+    }
+  }
+}
+
 /** Nothing heard by then: give up instead of listening forever. */
 const NO_SPEECH_MS = 8000;
 /** Silence after the learner's last words that ends the answer (Safari is slow to notice it). */
@@ -573,6 +612,7 @@ export function listen(cb: ListenCallbacks, { hold = false }: ListenOptions = {}
   };
   const begin = () => {
     if (ended) return;
+    if (isIOS) freeAudioForMic();
     trace(`mic start${hold ? " hold" : ""} (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
     if (!hold) later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
     later(stop, hold ? MAX_HOLD_MS : MAX_LISTEN_MS);
