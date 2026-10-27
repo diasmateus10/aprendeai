@@ -37,7 +37,8 @@ O AprendeAI foi pensado em cima dos erros mais comuns de brasileiros: o som do *
 - **6 tipos de exercício:** ouvir e escolher, pares mínimos (*think × sink*), ditado (na segunda tentativa só se corrige o que errou), repetir em voz alta, dizer em inglês a partir do português e responder falando.
 - **Correção de pronúncia:** o reconhecimento de voz compara palavra por palavra e marca em vermelho o que precisa de atenção.
 - **Flashcards com fotos reais:** 10 palavras novas por dia, ditas em voz alta, com repetição espaçada e contador de palavras decoradas.
-- **Botão "Devagar"** em todo áudio, que fala palavra por palavra.
+- **Voz natural gravada:** as 812 frases e palavras fixas do curso foram gravadas uma vez com o Kokoro, modelo de voz open-source (Apache-2.0), em sotaque americano e britânico ([`scripts/course-audio.ts`](scripts/course-audio.ts)). Custo zero por uso e a mesma voz em qualquer celular.
+- **Botão "Devagar"** em todo áudio: frases curtas palavra por palavra, com pausa entre elas.
 - **Gamificação:** XP, sequência de dias, meta diária, estrelas por lição e sons de acerto e erro.
 
 ### Modo Kids
@@ -64,7 +65,7 @@ A conversa com o Kiko tem regras de segurança fixas no prompt: inglês simples,
 | Camada | Tecnologia |
 |---|---|
 | Interface | React 18, TypeScript, Vite, Phosphor Icons |
-| Voz | Web Speech API (reconhecimento e síntese no navegador) |
+| Voz | Kokoro TTS (áudios do curso gerados uma vez) e Web Speech API (reconhecimento e voz das respostas da IA) |
 | IA | Claude, da Anthropic (`@anthropic-ai/sdk`), com streaming |
 | Backend | Funções serverless na Vercel |
 | Tarefas em segundo plano | Trigger.dev: agente de dificuldades, relatório semanal, lembretes agendados e avisos com atraso |
@@ -117,13 +118,14 @@ O reconhecimento de voz funciona melhor no Chrome, no Edge e no Safari do iPhone
 src/
   components/   telas: início, lições, exercícios, flashcards, conversa, temas, relatório, Modo Kids
   data/         conteúdo: curso, unidades dos temas, vocabulário, estilos da IA, conteúdo infantil, planos
-  lib/          voz (síntese e reconhecimento), sons, conta e sincronização, progresso, notificações
+  lib/          voz (síntese, áudios gravados e reconhecimento), sons, conta e sincronização, progresso, notificações
 server/         lógica do servidor: chat e limites, histórico e agente de dificuldades, relatórios,
                 pagamentos, notificações, conta
 api/            as rotas serverless da Vercel, que chamam server/
 trigger/        tarefas do Trigger.dev (agentes, agendamentos e avisos)
 supabase/       migrações do banco (tabelas, RLS e funções)
-scripts/        ferramentas: configuração do Stripe, fotos dos flashcards, unidades dos temas
+scripts/        ferramentas: configuração do Stripe, fotos dos flashcards, unidades dos temas, áudios do curso
+public/audio/   áudios gravados do curso (manifest.json lista o que existe por voz)
 ```
 
 ---

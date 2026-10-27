@@ -1,5 +1,7 @@
 // Text-to-speech (escuta) and speech recognition (fala) via the Web Speech API.
 
+import { CLIP_VOICES, clipKey } from "./clips";
+
 let cachedVoice: SpeechSynthesisVoice | null = null;
 /** "en-US" or "en-GB", chosen by the learner; drives the TTS voice and speech recognition. */
 let accent = "en-US";
@@ -225,6 +227,43 @@ async function fetchClip(text: string, slow: boolean): Promise<string | null> {
   }
 }
 
+// Recorded voice (lib/clips.ts): the course's fixed lines, recorded once with a natural voice. The list is
+// fetched once; until it arrives (or if it fails) everything uses the other voices.
+let recorded: Record<string, Set<string>> = {};
+if (typeof window !== "undefined") {
+  fetch("/audio/manifest.json")
+    .then((r) => (r.ok ? r.json() : {}))
+    .then((m: Record<string, string[]>) => {
+      recorded = Object.fromEntries(Object.entries(m).map(([v, keys]) => [v, new Set(keys)]));
+    })
+    .catch(() => {});
+}
+
+/** URL of the recorded clip for this line, or null. A voice the learner picked by name wins over it. */
+function recordedClip(text: string, slow: boolean): string | null {
+  if (preferredVoice) return null;
+  const voice = CLIP_VOICES[accent as keyof typeof CLIP_VOICES];
+  const key = clipKey(text);
+  return voice && recorded[voice]?.has(key) ? `/audio/${voice}/${key}${slow ? ".s" : ""}.mp3` : null;
+}
+
+/** Plays a clip on the shared element; resolves when it ends or is cut off, false when it couldn't play. */
+function playClip(src: string): Promise<boolean> {
+  return new Promise((resolve) => {
+    const finish = (ok: boolean) => {
+      if (endPlayback !== done) return;
+      endPlayback = null;
+      resolve(ok);
+    };
+    const done = () => finish(true);
+    endPlayback = done;
+    player!.onended = done;
+    player!.onerror = () => finish(false);
+    player!.src = src;
+    player!.play().catch(() => finish(false));
+  });
+}
+
 /** Longer texts (rare) go to the device voice, which splits them into sentences. */
 const SERVER_MAX_CHARS = 600;
 
@@ -244,6 +283,11 @@ function speakLine(text: string, slow: boolean): Promise<void> {
   stopPlayback();
   if (ttsSupported) window.speechSynthesis.cancel();
   const clean = text.replace(/\s+/g, " ").trim();
+  const clip = player && clean ? recordedClip(clean, slow) : null;
+  if (clip) {
+    // Couldn't play (e.g. no tap yet on iPhone): the device voice gets its turn.
+    return playClip(clip).then((ok) => (ok || id !== speakId ? undefined : speakWithDevice(text, slow, id)));
+  }
   if (!player || serverTts === "off" || !clean || clean.length > SERVER_MAX_CHARS) return speakWithDevice(text, slow, id);
   return fetchClip(clean, slow).then((src) => {
     if (id !== speakId) return;
