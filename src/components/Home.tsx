@@ -24,7 +24,7 @@ import {
   Bell,
 } from "@phosphor-icons/react";
 import { learnedCount, NEW_PER_DAY, newWordsToday } from "./Flashcards";
-import { deleteAccount, openPortal, type ProgressReport, type Subscription } from "../lib/account";
+import { deleteAccount, onSyncState, openPortal, type ProgressReport, type Subscription, type SyncState } from "../lib/account";
 import { PREMIUM_STATUSES } from "../data/plans";
 import type { Lesson, Unit } from "../data/course";
 import { levelInfo } from "../data/levels";
@@ -73,6 +73,8 @@ export interface HomeProps {
 export function Home(props: HomeProps) {
   const { progress, email } = props;
   const [menu, setMenu] = useState(false);
+  const [sync, setSync] = useState<SyncState>("synced");
+  useEffect(() => onSyncState(setSync), []);
   const initial = (email[0] ?? "?").toUpperCase();
   return (
     <div className="home">
@@ -87,6 +89,11 @@ export function Home(props: HomeProps) {
       </header>
 
       <div className="home-body">
+        {sync === "pending" && (
+          <div className="banner" role="status">
+            Sem internet: suas alterações estão salvas neste aparelho e vão para a sua conta quando a conexão voltar.
+          </div>
+        )}
         <ContinueCard {...props} />
         <Numbers progress={progress} />
         <GoalCard progress={progress} onGoal={props.onGoal} />

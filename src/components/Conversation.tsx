@@ -36,7 +36,11 @@ async function streamChat(
     body: JSON.stringify(body),
     signal,
   });
-  if (!res.body) throw new Error(await res.text());
+  // A failed request is never the partner speaking: keep our own ⚠️ messages (limits, paywall), drop anything technical.
+  if (!res.ok || !res.body) {
+    const body = await res.text().catch(() => "");
+    throw new Error(body.includes("⚠️") ? body.slice(body.indexOf("⚠️")) : `HTTP ${res.status}`);
+  }
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let text = "";
@@ -302,7 +306,9 @@ export function Conversation({
     } catch (e) {
       setStreaming(null);
       setPhase("idle");
-      if ((e as Error).name !== "AbortError") setError("A conversa caiu por um instante. Toque em “Tentar de novo”.");
+      if ((e as Error).name === "AbortError") return;
+      const msg = (e as Error).message;
+      setError(msg.startsWith("⚠️") ? msg : "A conversa caiu por um instante. Toque em “Tentar de novo”.");
     }
   };
 

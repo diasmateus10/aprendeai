@@ -237,6 +237,9 @@ function WordMarks({ score }: { score: Score }) {
 
 const MAX_TRIES = 3;
 
+const MIC_BLOCKED =
+  "O microfone está bloqueado neste navegador. Toque no cadeado ao lado do endereço do site e permita o microfone, ou toque em “Não posso falar agora” para continuar escrevendo, sem perder vida.";
+
 /** Shared microphone flow: record, score against targets, allow retries, report outcome. */
 function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeakingTime: (s: number) => void, solution: string) {
   const [recording, setRecording] = useState(false);
@@ -246,10 +249,13 @@ function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeaki
   const [error, setError] = useState<string | null>(null);
   const handle = useRef<ListenHandle | null>(null);
   const started = useRef(0);
+  /** The browser refused the mic: an empty result after that is the block, not silence. */
+  const blocked = useRef(false);
 
   useEffect(() => () => handle.current?.stop(), []);
 
   const start = () => {
+    blocked.current = false;
     setError(null);
     setInterim("");
     setScore(null);
@@ -260,7 +266,7 @@ function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeaki
       onInterim: setInterim,
       onFinal: (alts) => {
         if (alts.length === 0) {
-          setError("Não ouvi nada. Fale perto do microfone e tente de novo.");
+          if (!blocked.current) setError("Não ouvi nada. Fale perto do microfone e tente de novo.");
           return;
         }
         onSpeakingTime((Date.now() - started.current) / 1000);
@@ -277,7 +283,10 @@ function useSpeaking(targets: string[], onAnswer: (o: Outcome) => void, onSpeaki
         }
       },
       onError: (e) => {
-        if (e === "not-allowed" || e === "service-not-allowed") setError("Permita o uso do microfone no navegador para treinar a fala.");
+        if (e === "not-allowed" || e === "service-not-allowed") {
+          blocked.current = true;
+          setError(MIC_BLOCKED);
+        }
         else if (e !== "no-speech" && e !== "aborted") setError(`Erro no reconhecimento de voz (${e}).`);
       },
       onEnd: () => setRecording(false),
@@ -318,7 +327,7 @@ function MicPanel({ s, locked }: { s: ReturnType<typeof useSpeaking>; locked: bo
       >
         {s.recording ? <Stop size={34} weight="fill" /> : <Microphone size={40} weight="fill" />}
       </button>
-      <p className="mic-label">{s.recording ? s.interim || "Ouvindo... fale agora" : s.tries ? "Toque para tentar de novo" : "Toque e fale"}</p>
+      <p className="mic-label">{s.recording ? s.interim || "Ouvindo... fale agora" : locked ? "Toque em “Continuar” para seguir" : s.tries ? "Toque para tentar de novo" : "Toque e fale"}</p>
       {s.score && !s.recording && (
         <div className="speech-result">
           <WordMarks score={s.score} />

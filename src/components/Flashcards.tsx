@@ -303,14 +303,19 @@ function PictureCard({ card, onDone }: { card: Card; onDone(grade: Grade): void 
     setMicError(null);
     setInterim("");
     setRecording(true);
+    // The browser refused the mic: the empty result that follows is the block, not silence.
+    let blocked = false;
     mic.current = listen({
       onInterim: setInterim,
       onFinal: (alts) => {
         if (alts.length) answer(alts);
-        else setMicError("Não ouvi nada. Toque no microfone e fale de novo.");
+        else if (!blocked) setMicError("Não ouvi nada. Toque no microfone e fale de novo.");
       },
       onError: (e) => {
-        if (e === "not-allowed" || e === "service-not-allowed") setMicError("Permita o uso do microfone, ou digite a resposta.");
+        if (e === "not-allowed" || e === "service-not-allowed") {
+          blocked = true;
+          setMicError("O microfone está bloqueado neste navegador. Permita o microfone no cadeado ao lado do endereço, ou digite a resposta.");
+        }
       },
       onEnd: () => setRecording(false),
     });

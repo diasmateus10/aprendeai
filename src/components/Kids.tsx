@@ -510,7 +510,7 @@ function ListenTap({
                 className={`kids-option ${isWrong ? "wrong" : ""} ${isRight ? "right" : ""}`}
                 onClick={() => tap(o)}
                 disabled={isWrong}
-                aria-label={isRight ? o.en : "figura"}
+                aria-label={isRight ? o.en : o.pt}
               >
                 <Pic emoji={o.emoji} size={96} />
                 {isRight && <strong>{o.en}</strong>}
@@ -630,10 +630,14 @@ function RhymePlay({
     setInterim("");
     setRecording(true);
     const began = Date.now();
+    let blocked = false;
     mic.current = listen({
       onInterim: setInterim,
       onFinal: (alts) => {
-        if (!alts.length) return;
+        if (!alts.length) {
+          if (!blocked) setMicError("Não ouvi nada. Toque no microfone e fale bem alto!");
+          return;
+        }
         const s = scoreSpeech(line.en, alts);
         const seconds = (Date.now() - began) / 1000;
         setScore(s);
@@ -649,7 +653,10 @@ function RhymePlay({
         }
       },
       onError: (e) => {
-        if (e === "not-allowed" || e === "service-not-allowed") setMicError("Peça para um adulto liberar o microfone no navegador.");
+        if (e === "not-allowed" || e === "service-not-allowed") {
+          blocked = true;
+          setMicError("Peça para um adulto liberar o microfone no navegador.");
+        }
       },
       onEnd: () => {
         setRecording(false);

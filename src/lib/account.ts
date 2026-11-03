@@ -62,12 +62,17 @@ export async function updatePassword(password: string): Promise<AuthResult> {
 export async function signOut() {
   await flushSave();
   await supabase.auth.signOut();
+  // This device's copy is cleared on sign-out; whatever couldn't be uploaded goes with it.
+  pending = null;
+  setUnsynced(null);
+  setSyncState("synced");
 }
 
 /** Deletes the account and everything saved in it (and cancels the subscription). Returns an error message, or "". */
 export async function deleteAccount(): Promise<string> {
   clearTimeout(timer);
   pending = null;
+  setUnsynced(null);
   const res = await fetch("/api/account/delete", { method: "POST", headers: await authHeaders() }).catch(() => null);
   if (!res?.ok) return "Não consegui excluir a conta agora. Tente de novo ou peça pelo e-mail de contato.";
   // The account no longer exists; this only clears the session on this device.
@@ -75,11 +80,54 @@ export async function deleteAccount(): Promise<string> {
   return "";
 }
 
-/** The account's saved progress, or null for a new account. Throws when the database can't be reached. */
+/** The account's saved progress, or null for a new account (or when this device has newer offline changes). Throws when the database can't be reached. */
 export async function loadRemote(userId: string): Promise<unknown | null> {
-  const { data, error } = await supabase.from("user_progress").select("data").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase.from("user_progress").select("data, updated_at").eq("user_id", userId).maybeSingle();
   if (error) throw new Error(error.message);
-  return data?.data ?? null;
+  if (!data) return null;
+  // Changes made offline on this device that never reached the account: newer than the account's copy, they win.
+  const unsynced = unsyncedSince(userId);
+  if (unsynced && unsynced > Date.parse(data.updated_at)) return null;
+  return data.data ?? null;
+}
+
+// A change that couldn't be uploaded (offline) is remembered across reloads, so the account's older copy
+// doesn't replace it on the next start; it uploads as soon as the connection comes back.
+const UNSYNCED_KEY = "aprendeai.unsynced";
+
+function unsyncedSince(userId: string): number | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(UNSYNCED_KEY) ?? "null") as { userId: string; at: number } | null;
+    return raw?.userId === userId ? raw.at : null;
+  } catch {
+    return null;
+  }
+}
+
+function setUnsynced(userId: string | null) {
+  try {
+    if (userId) localStorage.setItem(UNSYNCED_KEY, JSON.stringify({ userId, at: Date.now() }));
+    else localStorage.removeItem(UNSYNCED_KEY);
+  } catch {
+    // storage unavailable
+  }
+}
+
+/** "pending": saved on this device only, waiting for the internet. */
+export type SyncState = "synced" | "pending";
+let syncState: SyncState = "synced";
+const syncListeners = new Set<(s: SyncState) => void>();
+
+function setSyncState(s: SyncState) {
+  if (s === syncState) return;
+  syncState = s;
+  syncListeners.forEach((fn) => fn(s));
+}
+
+export function onSyncState(fn: (s: SyncState) => void): () => void {
+  syncListeners.add(fn);
+  fn(syncState);
+  return () => syncListeners.delete(fn);
 }
 
 let pending: { userId: string; progress: Progress } | null = null;
@@ -90,11 +138,30 @@ async function flushSave() {
   const job = pending;
   pending = null;
   if (!job) return;
-  const { error } = await supabase
-    .from("user_progress")
-    .upsert({ user_id: job.userId, data: job.progress, updated_at: new Date().toISOString() });
-  // Kept locally anyway; the next change retries the upload.
-  if (error) console.error("[account] save failed:", error.message);
+  let failed: string | null = null;
+  if (typeof navigator !== "undefined" && navigator.onLine === false) failed = "offline";
+  else {
+    try {
+      const { error } = await supabase
+        .from("user_progress")
+        .upsert({ user_id: job.userId, data: job.progress, updated_at: new Date().toISOString() });
+      if (error) failed = error.message;
+    } catch (e) {
+      failed = (e as Error).message;
+    }
+  }
+  if (failed) {
+    // Kept locally and retried when the connection comes back (or on the next change).
+    console.error("[account] save failed:", failed);
+    pending ??= job;
+    setUnsynced(job.userId);
+    setSyncState("pending");
+    return;
+  }
+  if (!pending) {
+    setUnsynced(null);
+    setSyncState("synced");
+  }
 }
 
 /** Saves to the account a moment after the last change, so a burst of answers is one write. */
@@ -104,9 +171,10 @@ export function saveRemote(userId: string, progress: Progress) {
   timer = setTimeout(flushSave, 1500);
 }
 
-// Leaving or hiding the app (switching apps on a phone) uploads what is still waiting.
+// Leaving or hiding the app (switching apps on a phone) uploads what is still waiting; so does reconnecting.
 if (typeof document !== "undefined") {
   document.addEventListener("visibilitychange", () => document.visibilityState === "hidden" && flushSave());
+  window.addEventListener("online", () => void flushSave());
 }
 
 /** Proves who is calling our own API (chat, billing): the server checks this token with Supabase. */
