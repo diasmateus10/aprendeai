@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "iphone": {
+      "command": "cmd",
+      "args": [
+        "/c", "npx", "-y", "@playwright/mcp@0.0.84",
+        "--browser", "webkit",
+        "--device", "iPhone 15",
+        "--isolated",
+        "--output-dir", ".iphone"
+      ]
+    }
+  }
+}

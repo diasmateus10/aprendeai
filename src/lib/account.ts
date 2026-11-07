@@ -35,18 +35,77 @@ function message(error: AuthError | Error): string {
   }
 }
 
-export type AuthResult = { ok: true; needsConfirmation?: boolean } | { ok: false; error: string };
+export type AuthResult =
+  | { ok: true; needsConfirmation?: boolean }
+  /** `existingAccount`: "Criar conta" with an e-mail that already has an account, and the password didn't match. */
+  | { ok: false; error: string; existingAccount?: boolean };
+
+/** Auth calls give up after this: on a stalled phone connection the button would say "Um instante…" forever. */
+const AUTH_TIMEOUT_MS = 20_000;
+
+class AuthTimeout extends Error {}
+
+function withTimeout<T>(call: Promise<T>): Promise<T> {
+  let timer: ReturnType<typeof setTimeout>;
+  const late = new Promise<never>((_, reject) => (timer = setTimeout(() => reject(new AuthTimeout()), AUTH_TIMEOUT_MS)));
+  return Promise.race([call, late]).finally(() => clearTimeout(timer));
+}
+
+/** Thrown errors (timeout, no connection) in Portuguese. */
+function failure(error: unknown): AuthResult {
+  return {
+    ok: false,
+    error:
+      error instanceof AuthTimeout
+        ? "A conexão está lenta e o login não respondeu. Confira a internet e tente de novo."
+        : "Não foi possível agora. Confira sua internet e tente de novo.",
+  };
+}
+
+// "Criar conta" with an e-mail that already has an account signs straight in; the app then shows a short
+// "você já tem conta" moment while it opens (App listens here).
+const existingAccountListeners = new Set<() => void>();
+
+export function onExistingAccount(fn: () => void): () => void {
+  existingAccountListeners.add(fn);
+  return () => existingAccountListeners.delete(fn);
+}
 
 export async function signIn(email: string, password: string): Promise<AuthResult> {
-  const { error } = await supabase.auth.signInWithPassword({ email, password });
-  return error ? { ok: false, error: message(error) } : { ok: true };
+  try {
+    const { error } = await withTimeout(supabase.auth.signInWithPassword({ email, password }));
+    return error ? { ok: false, error: message(error) } : { ok: true };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function signUp(email: string, password: string): Promise<AuthResult> {
-  const { data, error } = await supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } });
-  if (error) return { ok: false, error: message(error) };
-  // With "Confirm email" on in Supabase, there is no session until the link in the e-mail is opened.
-  return { ok: true, needsConfirmation: !data.session };
+  try {
+    const { data, error } = await withTimeout(supabase.auth.signUp({ email, password, options: { emailRedirectTo: location.origin } }));
+    // The e-mail already has an account. Supabase says so as an error, or (with "Confirm email" on, so as not to
+    // reveal who is registered) as a user with no identities and no session; a real new account has one identity.
+    const exists = error
+      ? error.code === "user_already_exists" || error.code === "email_exists" || /already registered/i.test(error.message)
+      : !data.session && !!data.user && data.user.identities?.length === 0;
+    if (exists) {
+      const signedIn = await signIn(email, password);
+      if (signedIn.ok) {
+        existingAccountListeners.forEach((fn) => fn());
+        return signedIn;
+      }
+      return {
+        ok: false,
+        existingAccount: true,
+        error: "Você já tem uma conta com esse e-mail, mas a senha não confere. Digite a senha da sua conta ou toque em “Esqueci minha senha”.",
+      };
+    }
+    if (error) return { ok: false, error: message(error) };
+    // With "Confirm email" on in Supabase, there is no session until the link in the e-mail is opened.
+    return { ok: true, needsConfirmation: !data.session };
+  } catch (error) {
+    return failure(error);
+  }
 }
 
 export async function sendPasswordReset(email: string): Promise<AuthResult> {
@@ -167,6 +226,9 @@ async function flushSave() {
 /** Saves to the account a moment after the last change, so a burst of answers is one write. */
 export function saveRemote(userId: string, progress: Progress) {
   pending = { userId, progress };
+  // Marked right away: if the app is closed before the upload (or the page unload cancels it), the next
+  // start keeps this device's newer copy instead of the account's older one, and uploads it.
+  setUnsynced(userId);
   clearTimeout(timer);
   timer = setTimeout(flushSave, 1500);
 }

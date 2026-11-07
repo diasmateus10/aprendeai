@@ -11,6 +11,7 @@ import { KidsApp } from "./components/Kids";
 import { Home } from "./components/Home";
 import { ThemePicker } from "./components/ThemePicker";
 import { CenterScreen, IconButton, SoundButtons } from "./components/ui";
+import { Mascot } from "./components/Brand";
 import { reportStudy } from "./lib/push";
 import { AuthScreen, NewPasswordScreen } from "./components/Auth";
 import {
@@ -19,6 +20,7 @@ import {
   loadRemote,
   markReportSeen,
   loadSubscription,
+  onExistingAccount,
   saveRemote,
   signOut,
   supabase,
@@ -58,6 +60,9 @@ type Screen =
   | { name: "lesson"; lesson: LessonT }
   | { name: "result"; lesson: LessonT; result: LessonResult; xp: number };
 
+/** How long "você já tem conta" stays on screen at least, so it can be read before the app opens. */
+const EXISTING_ACCOUNT_MS = 2200;
+
 export default function App() {
   const [progress, setProgress] = useState<Progress>(loadProgress);
   const [screen, setScreen] = useState<Screen>(() => (progress.level ? { name: "path" } : { name: "welcome" }));
@@ -68,6 +73,9 @@ export default function App() {
   const [syncedUser, setSyncedUser] = useState<string | null>(null);
   /** Opened the "new password" link from the e-mail. */
   const [recovery, setRecovery] = useState(false);
+  /** "Criar conta" with an e-mail that already had an account signed straight in: when that happened, so the
+   * "você já tem conta" moment shows while the app opens, for at least EXISTING_ACCOUNT_MS. */
+  const [existingAccountAt, setExistingAccountAt] = useState<number | null>(null);
   /** null: never subscribed. Loaded with the account. */
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   /** Why the plans screen is open (shown at the top of it), or null when closed. */
@@ -100,6 +108,15 @@ export default function App() {
     });
     return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => onExistingAccount(() => setExistingAccountAt(Date.now())), []);
+  // The "você já tem conta" moment lasts until the account is loaded and at least EXISTING_ACCOUNT_MS went by.
+  const syncedNow = !!session && syncedUser === session.user.id;
+  useEffect(() => {
+    if (existingAccountAt === null || !syncedNow) return;
+    const t = setTimeout(() => setExistingAccountAt(null), Math.max(0, existingAccountAt + EXISTING_ACCOUNT_MS - Date.now()));
+    return () => clearTimeout(t);
+  }, [existingAccountAt, syncedNow]);
 
   // On sign-in, the account's progress replaces this device's copy; a brand-new account starts from
   // what the device already had. From then on every save also goes to the account.
@@ -194,6 +211,20 @@ export default function App() {
   }, [progress.mode, progress.lastDay, progress.streak]);
 
   if (recovery) return <NewPasswordScreen onDone={() => setRecovery(false)} />;
+  if (session && existingAccountAt !== null) {
+    return (
+      <div className="result existing-account" role="status" aria-live="polite">
+        <div className="result-card">
+          <Mascot mood="happy" size={124} className="result-mascot existing-mascot" />
+          <h1>Você já tem conta!</h1>
+          <p className="hint">Que bom te ver de novo. Entramos na sua conta e já estamos abrindo o app…</p>
+          <div className="existing-bar" aria-hidden="true">
+            <span />
+          </div>
+        </div>
+      </div>
+    );
+  }
   if (session === undefined || (session && syncedUser !== session.user.id)) {
     return (
       <CenterScreen mood="thinking">

@@ -1140,6 +1140,13 @@ button:disabled {
   font-size: var(--fs-sm);
 }
 
+/* "Traduzir": the partner's line in Portuguese, under the English. */
+.msg .msg-pt {
+  margin-top: 6px;
+  color: var(--muted);
+  font-style: italic;
+}
+
 .feedback-card {
   background: var(--surface);
   border: 2px solid var(--primary);
@@ -1206,6 +1213,12 @@ button:disabled {
 
 .orb.listening .orb-core {
   animation: orb-breathe 1.6s ease-in-out infinite;
+}
+
+/* Recorded on the server path (lib/recorder.ts): the orb grows with the learner's voice, so they see it's heard. */
+.orb.listening.live {
+  scale: calc(1 + var(--level, 0) * 0.35);
+  transition: scale 80ms linear;
 }
 
 .orb.thinking {
@@ -2179,6 +2192,72 @@ button:disabled {
 
 .result-mascot {
   margin-bottom: 8px;
+}
+
+/* "Você já tem conta!": Criar conta with an e-mail that already had an account signs in and opens the app. */
+.existing-account .result-card {
+  animation: existing-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;
+}
+
+.existing-mascot {
+  animation: existing-hop 0.9s ease-in-out 0.3s 2;
+}
+
+.existing-account h1 {
+  margin: 4px 0 6px;
+}
+
+.existing-bar {
+  width: 180px;
+  height: 6px;
+  margin: 18px auto 0;
+  border-radius: 999px;
+  background: var(--surface-2);
+  overflow: hidden;
+}
+
+.existing-bar span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  animation: existing-fill 2.2s ease-in-out forwards;
+}
+
+@keyframes existing-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9) translateY(12px);
+  }
+}
+
+@keyframes existing-hop {
+  30% {
+    transform: translateY(-14px) rotate(-6deg);
+  }
+  60% {
+    transform: translateY(0) rotate(4deg);
+  }
+}
+
+@keyframes existing-fill {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .existing-account .result-card,
+  .existing-mascot,
+  .existing-bar span {
+    animation: none;
+  }
+  .existing-bar span {
+    width: 100%;
+  }
 }
 
 .gold {

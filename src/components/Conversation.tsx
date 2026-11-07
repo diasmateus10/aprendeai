@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { ArrowLeft, Keyboard, NotePencil, PersonSimpleWalk, SpeakerHigh, Timer, X } from "@phosphor-icons/react";
+import { ArrowLeft, Keyboard, NotePencil, PersonSimpleWalk, SpeakerHigh, Timer, Translate, X } from "@phosphor-icons/react";
 import { SESSION_SECONDS, TOPICS, type Topic } from "../data/topics";
 import { ACCENTS, CORRECTIONS, LENGTHS, PERSONAS, type AiStyle, type Option } from "../data/aiStyle";
 import { VoicePicker } from "./VoicePicker";
@@ -7,12 +7,34 @@ import { imageFor } from "../data/vocab";
 import { authHeaders } from "../lib/account";
 import { PAYWALL_MARK } from "../data/plans";
 import type { Level } from "../lib/progress";
-import { isIOS, listen, usingServerVoice, speak, speakingPaused, speechLog, stopSpeaking, sttSupported, type ListenHandle } from "../lib/speech";
+import {
+  isIOS,
+  listen,
+  replyVoice,
+  usingServerVoice,
+  speak,
+  speakingPaused,
+  speechLog,
+  stopSpeaking,
+  sttSupported,
+  type ListenHandle,
+  type ReplyVoice,
+} from "../lib/speech";
+import { blobToBase64, canRecord, MAX_HOLD_MS, MicRecorder } from "../lib/recorder";
 
 interface Turn {
   role: "user" | "assistant";
   content: string;
 }
+
+/** Events streamed by /api/talk, one JSON per line (see server/talk.ts). */
+type TalkEvent =
+  | { type: "user"; text: string }
+  | { type: "delta"; text: string }
+  | { type: "audio"; text: string; audio: string | null }
+  | { type: "reply"; text: string }
+  | { type: "done" }
+  | { type: "error"; error: string; userText?: string };
 
 /** Splits the partner's reply into the spoken part and the optional Portuguese correction line, wherever it sits. */
 function splitTip(text: string): { said: string; tip: string | null } {
@@ -26,7 +48,15 @@ function splitTip(text: string): { said: string; tip: string | null } {
 }
 
 async function streamChat(
-  body: { topic: string; level: string; mode: "chat" | "feedback"; messages: Turn[]; style: AiStyle; age?: string; sessionId: string },
+  body: {
+    topic: string;
+    level: string;
+    mode: "chat" | "feedback" | "translate";
+    messages: Turn[];
+    style: AiStyle;
+    age?: string;
+    sessionId: string;
+  },
   onText: (soFar: string) => void,
   signal: AbortSignal,
 ): Promise<string> {
@@ -187,8 +217,24 @@ export function Conversation({
   const [holding, setHolding] = useState(false);
   const [interim, setInterim] = useState("");
   const [draft, setDraft] = useState("");
-  const [typing, setTyping] = useState(!sttSupported || speakingPaused());
+  const [typing, setTyping] = useState((!sttSupported && !canRecord) || speakingPaused());
+  // Voice turns heard by the server (/api/talk: Azure recognition + reply + natural voice in one request).
+  // "off" when the server isn't set up for it or its free quota ran out: the browser's recognition is used then.
+  const [serverMic, setServerMic] = useState<"unknown" | "on" | "off">(canRecord ? "unknown" : "off");
+  const serverMicRef = useRef(serverMic);
+  serverMicRef.current = serverMic;
+  const recorder = useRef<MicRecorder | null>(null);
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const orbRef = useRef<HTMLButtonElement>(null);
+  /** The learner's answer was sent and its transcript hasn't come back yet. */
+  const [hearing, setHearing] = useState(false);
+  /** What "Tentar de novo" does: resend the text history, or the same recorded answer. */
+  const retry = useRef<(() => void) | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
+  /** "Traduzir": Portuguese for the partner's lines, by message index (kept, so showing again is instant). */
+  const [translations, setTranslations] = useState<Record<number, string>>({});
+  const [shownTranslations, setShownTranslations] = useState<Set<number>>(new Set());
+  const failedTranslations = useRef(new Set<number>());
   const [error, setError] = useState<string | null>(null);
   const [micError, setMicError] = useState<string | null>(null);
   const ended = left <= 0 || feedback !== null;
@@ -283,6 +329,7 @@ export function Conversation({
 
   const send = async (history: Turn[]) => {
     lastSent.current = history;
+    retry.current = () => send(lastSent.current);
     setError(null);
     setStreaming("");
     setPhase("thinking");
@@ -312,20 +359,201 @@ export function Conversation({
     }
   };
 
+  /**
+   * One voice turn: the recorded answer goes to the server, which hears it, replies and sends the reply's voice.
+   * The answer streams (see server/talk.ts): what was heard shows at once, the reply appears as it's written,
+   * and the first sentence is spoken while the rest is still on its way.
+   */
+  const talk = async (wav: Blob) => {
+    const history = turnsRef.current;
+    retry.current = () => talk(wav);
+    setError(null);
+    setPhase("thinking");
+    setHearing(true);
+    // Pressing the orb (or leaving) bumps sayId: this turn's voice then stops and no longer drives the orb.
+    const id = ++sayId.current;
+    let voice: ReplyVoice | null = null;
+    let reply = "";
+    let replied = false;
+    let failed = false;
+    try {
+      const res = await fetch("/api/talk", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", ...(await authHeaders()) },
+        body: JSON.stringify({
+          topic: topic.id,
+          level,
+          messages: history,
+          style,
+          age,
+          sessionId: sessionId.current,
+          audio: await blobToBase64(wav),
+        }),
+        signal: abort.current.signal,
+      });
+      if (res.ok && res.body && (res.headers.get("content-type") ?? "").includes("ndjson")) {
+        const handle = (ev: TalkEvent) => {
+          if (ev.type === "user") {
+            setHearing(false);
+            if (!ev.text) {
+              setPhase("idle");
+              setMicError("Não entendi. Segure a bolinha e fale de novo, pertinho do microfone.");
+              return;
+            }
+            deafHolds.current = 0;
+            const withUser = [...history, { role: "user" as const, content: ev.text }];
+            turnsRef.current = withUser;
+            setTurns(withUser);
+            setStreaming("");
+          } else if (ev.type === "delta") {
+            reply += ev.text;
+            setStreaming(splitTip(reply).said ? reply : "");
+          } else if (ev.type === "audio") {
+            if (endedRef.current || id !== sayId.current) return;
+            if (!voice) {
+              voice = replyVoice();
+              stopMic();
+              setPhase("speaking");
+            }
+            voice.add(ev.text, ev.audio);
+          } else if (ev.type === "reply") {
+            replied = true;
+            reply = ev.text;
+            setStreaming(null);
+            const next = [...turnsRef.current, { role: "assistant" as const, content: reply }];
+            turnsRef.current = next;
+            setTurns(next);
+          } else if (ev.type === "error") {
+            failed = true;
+            setStreaming(null);
+            setPhase("idle");
+            // Heard, but the AI failed: what they said stays, and the retry asks the AI again (text turn).
+            lastSent.current = turnsRef.current;
+            retry.current = () => send(lastSent.current);
+            setError(ev.error);
+          }
+        };
+        const reader = res.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          for (let nl = buffer.indexOf("\n"); nl !== -1; nl = buffer.indexOf("\n")) {
+            const line = buffer.slice(0, nl).trim();
+            buffer = buffer.slice(nl + 1);
+            if (line) handle(JSON.parse(line) as TalkEvent);
+          }
+        }
+        setHearing(false);
+        const v = voice as ReplyVoice | null;
+        if (failed) {
+          v?.close();
+          return;
+        }
+        if (!replied) {
+          // The stream broke off (connection lost): nothing half-said stays on screen.
+          v?.close();
+          setStreaming(null);
+          if (turnsRef.current.length > history.length) {
+            setPhase("idle");
+            setError("A conversa caiu por um instante. Toque em “Tentar de novo”.");
+          }
+          return;
+        }
+        if (v) {
+          v.close();
+          await v.done;
+        } else if (!endedRef.current && id === sayId.current) {
+          // No voice came (Azure failed): the device voice says it.
+          await say(splitTip(reply).said);
+          return;
+        }
+        if (id === sayId.current) setPhase("idle");
+        return;
+      }
+      // Errors before anything streamed come back as plain JSON.
+      const data = (await res.json().catch(() => ({}))) as {
+        userText?: string;
+        error?: string;
+        fallback?: boolean;
+      };
+      setHearing(false);
+      if (!res.ok) {
+        if (data.fallback) {
+          // Server hearing unavailable (quota used up, not set up): the browser's recognition takes over.
+          setServerMic("off");
+          setPhase("idle");
+          if (sttSupported) setMicError("Segure a bolinha e fale de novo.");
+          else {
+            setTyping(true);
+            setMicError("O microfone não está disponível agora. Digite sua resposta abaixo.");
+          }
+          return;
+        }
+        setPhase("idle");
+        setError(data.error?.startsWith("⚠️") ? data.error : "A conversa caiu por um instante. Toque em “Tentar de novo”.");
+        return;
+      }
+      setPhase("idle");
+      setError("A conversa caiu por um instante. Toque em “Tentar de novo”.");
+    } catch (e) {
+      (voice as ReplyVoice | null)?.close();
+      setHearing(false);
+      setStreaming(null);
+      setPhase("idle");
+      if ((e as Error).name === "AbortError") return;
+      setError("A conversa caiu por um instante. Toque em “Tentar de novo”.");
+    }
+  };
+
   // Partner opens the conversation.
   useEffect(() => {
     // Fresh controller per mount: React StrictMode mounts twice in dev and the first one is aborted.
     const ctrl = new AbortController();
     abort.current = ctrl;
     send([]);
+    // Is server hearing available here? Until the answer comes, the orb uses the browser's recognition.
+    if (canRecord) {
+      fetch("/api/talk", { signal: ctrl.signal })
+        .then((r) => setServerMic(r.ok ? "on" : "off"))
+        .catch(() => setServerMic("off"));
+    }
     return () => {
       ctrl.abort();
       sayId.current++;
       stopMic();
       stopSpeaking();
+      clearTimeout(holdTimer.current);
+      recorder.current?.close();
+      recorder.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // The voice browser can't hear the learner in the background: leaving the tab stops the voice and frees the mic.
+  useEffect(() => {
+    const onHide = () => {
+      if (document.visibilityState !== "hidden") return;
+      sayId.current++;
+      stopSpeaking();
+      stopMic();
+      clearTimeout(holdTimer.current);
+      recorder.current?.close();
+      recorder.current = null;
+      setHolding(false);
+      if (phaseRef.current !== "thinking") setPhase("idle");
+    };
+    document.addEventListener("visibilitychange", onHide);
+    return () => document.removeEventListener("visibilitychange", onHide);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Without either recognizer the keyboard is the way to answer.
+  useEffect(() => {
+    if (serverMic === "off" && !sttSupported) setTyping(true);
+  }, [serverMic]);
 
   useEffect(() => {
     if (ended) return;
@@ -374,20 +602,83 @@ export function Conversation({
 
   /** Pressing the orb cuts the partner off and opens the mic, inside the press (the iPhone needs that). */
   const pressOrb = () => {
-    if (ended || phase === "thinking" || mic.current) return;
+    if (ended || phase === "thinking" || mic.current || recorder.current?.isRecording) return;
     pressedAt.current = Date.now();
     sayId.current++;
     stopSpeaking();
     setHolding(true);
+    setMicError(null);
+    if (serverMicRef.current === "on") {
+      setPhase("listening");
+      const rec = (recorder.current ??= new MicRecorder());
+      rec.onLevel = (level) => orbRef.current?.style.setProperty("--level", level.toFixed(2));
+      rec.start().catch((err: Error) => {
+        setHolding(false);
+        setPhase("idle");
+        setMicError(
+          err.name === "NotAllowedError" ? "Permita o uso do microfone no navegador." : "Não consegui abrir o microfone. Tente de novo.",
+        );
+      });
+      // A stuck finger (or key) doesn't record forever.
+      holdTimer.current = setTimeout(() => void releaseOrb(), MAX_HOLD_MS);
+      return;
+    }
     setPhase("idle");
     startListening();
   };
 
   /** Letting go sends what was heard. */
-  const releaseOrb = () => {
-    if (!holding) return;
+  const releaseOrb = async () => {
+    if (!holding && !recorder.current?.isRecording) return;
     setHolding(false);
-    mic.current?.stop();
+    clearTimeout(holdTimer.current);
+    const rec = recorder.current;
+    if (!rec?.isRecording) {
+      mic.current?.stop();
+      return;
+    }
+    const recording = await rec.stop();
+    if (recording.wav) return talk(recording.wav);
+    setPhase("idle");
+    if (recording.problem === "short") {
+      setMicError("Segure a bolinha enquanto fala e solte quando terminar.");
+      return;
+    }
+    // Silence: reopening the mic on the next press fixes an iPhone left in playback-only audio.
+    rec.close();
+    recorder.current = null;
+    deafHolds.current++;
+    if (deafHolds.current >= 2) {
+      setTyping(true);
+      setMicError("Não estou conseguindo ouvir. Digite sua resposta abaixo, ou segure a bolinha e tente de novo.");
+    } else setMicError("Não ouvi nada. Segure a bolinha, fale e solte.");
+  };
+
+  /** "Traduzir" shows the partner's line in Portuguese (asked once, then just shown or hidden). */
+  const translate = async (index: number, said: string) => {
+    const shown = shownTranslations.has(index);
+    setShownTranslations((prev) => {
+      const next = new Set(prev);
+      if (shown) next.delete(index);
+      else next.add(index);
+      return next;
+    });
+    if (shown || (translations[index] && !failedTranslations.current.has(index))) return;
+    failedTranslations.current.delete(index);
+    try {
+      const text = await streamChat(
+        { topic: topic.id, level, mode: "translate", messages: [{ role: "user", content: said }], style, age, sessionId: sessionId.current },
+        (soFar) => setTranslations((prev) => ({ ...prev, [index]: soFar })),
+        abort.current.signal,
+      );
+      setTranslations((prev) => ({ ...prev, [index]: text.trim() }));
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+      const msg = (e as Error).message;
+      setTranslations((prev) => ({ ...prev, [index]: msg.startsWith("⚠️") ? msg : "Não consegui traduzir agora. Toque de novo." }));
+      // Hiding and showing it again asks once more.
+      failedTranslations.current.add(index);
+    }
   };
 
   /** Replays a message; the mic stays closed meanwhile so it doesn't hear the partner's voice. */
@@ -395,6 +686,9 @@ export function Conversation({
     if (phase === "thinking") speak(text, slow);
     else say(text, slow);
   };
+
+  /** The orb shows when either the server or the browser can hear the learner. */
+  const voiceInput = sttSupported || (canRecord && serverMic !== "off");
 
   const mm = Math.max(left, 0);
   const clock = `${Math.floor(mm / 60)}:${String(mm % 60).padStart(2, "0")}`;
@@ -440,13 +734,27 @@ export function Conversation({
                 <button className="mini slow" onClick={() => replay(said, true)} aria-label="Ouvir devagar">
                   <PersonSimpleWalk size={16} weight="bold" /> Devagar
                 </button>
+                <button
+                  className="mini slow"
+                  onClick={() => translate(i, said)}
+                  aria-expanded={shownTranslations.has(i)}
+                  aria-label={shownTranslations.has(i) ? "Esconder tradução" : "Traduzir para português"}
+                >
+                  <Translate size={16} weight="bold" /> {shownTranslations.has(i) ? "Esconder" : "Traduzir"}
+                </button>
               </div>
+              {shownTranslations.has(i) && (
+                <p className="msg-pt" lang="pt-BR">
+                  {translations[i] || "Traduzindo…"}
+                </p>
+              )}
               {tip && <p className="msg-tip">{tip}</p>}
             </div>
           );
         })}
         {streaming !== null && <div className="msg ai typing">{splitTip(streaming).said || "…"}</div>}
         {phase === "listening" && interim && <div className="msg me interim">{interim}</div>}
+        {hearing && <div className="msg me interim">…</div>}
         {error && (
           <div className="retry">
             <p className="warn">{error.replace(PAYWALL_MARK, "").replace(/\s+/g, " ")}</p>
@@ -458,7 +766,7 @@ export function Conversation({
               )
             ) : (
               !ended && (
-                <button className="btn secondary" onClick={() => send(lastSent.current)}>
+                <button className="btn secondary" onClick={() => retry.current?.()}>
                   Tentar de novo
                 </button>
               )
@@ -495,7 +803,7 @@ export function Conversation({
         )}
         {debug && (
           <pre className="hint small" style={{ whiteSpace: "pre-wrap", userSelect: "text" }}>
-            {`${navigator.userAgent}\nphase=${phase} holding=${holding}\n${speechLog.join("\n")}`}
+            {`${navigator.userAgent}\nphase=${phase} holding=${holding} serverMic=${serverMic}\n${speechLog.join("\n")}`}
           </pre>
         )}
         <div ref={bottom} />
@@ -503,19 +811,20 @@ export function Conversation({
 
       {!ended && !error?.includes(PAYWALL_MARK) && (
         <footer className="convo-footer">
-          {sttSupported && (
+          {voiceInput && (
             <div className="orb-panel">
               <button
+                ref={orbRef}
                 className={`orb ${phase} ${holding ? "live" : ""}`}
                 onPointerDown={(e) => {
                   // Keeps the release on the orb even if the finger slides off it.
                   e.currentTarget.setPointerCapture(e.pointerId);
                   pressOrb();
                 }}
-                onPointerUp={releaseOrb}
-                onPointerCancel={releaseOrb}
+                onPointerUp={() => void releaseOrb()}
+                onPointerCancel={() => void releaseOrb()}
                 onKeyDown={(e) => (e.key === " " || e.key === "Enter") && !e.repeat && (e.preventDefault(), pressOrb())}
-                onKeyUp={(e) => (e.key === " " || e.key === "Enter") && releaseOrb()}
+                onKeyUp={(e) => (e.key === " " || e.key === "Enter") && void releaseOrb()}
                 onContextMenu={(e) => e.preventDefault()}
                 disabled={phase === "thinking"}
                 aria-label={orbLabel}
@@ -540,7 +849,7 @@ export function Conversation({
             </div>
           )}
           <div className="convo-actions">
-            {sttSupported && (
+            {voiceInput && (
               <button className="link" onClick={() => setTyping(!typing)}>
                 {typing ? (
                   "Esconder teclado"

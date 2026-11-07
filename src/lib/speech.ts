@@ -270,7 +270,7 @@ const SERVER_MAX_CHARS = 600;
 /** Speaks the text; resolves when it finishes, fails or is interrupted by another speak()/stopSpeaking(). */
 export function speak(text: string, slow = false): Promise<void> {
   const id = speakId + 1;
-  trace(`voice speak "${text.slice(0, 30)}"`);
+  trace(`voice speak "${text.slice(0, 30)}" (session=${sessionType()})`);
   return speakLine(text, slow).finally(() => {
     trace(`voice done${id === speakId ? "" : " (cut off)"}`);
     // The mic must not open the instant a line ends (see listen).
@@ -278,8 +278,72 @@ export function speak(text: string, slow = false): Promise<void> {
   });
 }
 
+/** Wakes a replyVoice() waiting for its next clip, so it notices it was cut off. */
+let streamWake: (() => void) | null = null;
+
+export interface ReplyVoice {
+  /** Queues the next part of the reply: its MP3 from the server, or null to say it with the device voice. */
+  add(text: string, mp3Base64: string | null): void;
+  /** No more parts are coming. */
+  close(): void;
+  /** Resolves when every part was played, or when speech was cut off (speak() or stopSpeaking()). */
+  done: Promise<void>;
+}
+
+/**
+ * Plays a reply that arrives in parts (the voice conversation streams the first sentence's voice before the
+ * rest is written), one after the other on the shared audio element.
+ */
+export function replyVoice(): ReplyVoice {
+  const id = ++speakId;
+  streamWake?.();
+  stopPlayback();
+  if (ttsSupported) window.speechSynthesis.cancel();
+  const parts: { text: string; url: string | null }[] = [];
+  let closed = false;
+  let wake: (() => void) | null = null;
+  const nudge = () => {
+    const w = wake;
+    wake = null;
+    w?.();
+  };
+  streamWake = nudge;
+  const done = (async () => {
+    for (let i = 0; ; i++) {
+      while (i >= parts.length && !closed && id === speakId) await new Promise<void>((r) => (wake = r));
+      if (id !== speakId || i >= parts.length) break;
+      const { text, url } = parts[i];
+      trace(`voice part ${i + 1} "${text.slice(0, 30)}"`);
+      const played = url && player ? await playClip(url) : false;
+      if (id !== speakId) break;
+      if (!played) await speakWithDevice(text, false, id);
+    }
+  })().finally(() => {
+    if (streamWake === nudge) streamWake = null;
+    parts.forEach((p) => p.url && URL.revokeObjectURL(p.url));
+    if (id === speakId) quietSince = Date.now();
+  });
+  return {
+    add(text, mp3Base64) {
+      let url: string | null = null;
+      if (mp3Base64) {
+        const bytes = Uint8Array.from(atob(mp3Base64), (c) => c.charCodeAt(0));
+        url = URL.createObjectURL(new Blob([bytes], { type: "audio/mpeg" }));
+      }
+      parts.push({ text, url });
+      nudge();
+    },
+    close() {
+      closed = true;
+      nudge();
+    },
+    done,
+  };
+}
+
 function speakLine(text: string, slow: boolean): Promise<void> {
   const id = ++speakId;
+  streamWake?.();
   stopPlayback();
   if (ttsSupported) window.speechSynthesis.cancel();
   const clean = text.replace(/\s+/g, " ").trim();
@@ -324,6 +388,9 @@ function slowParts(text: string): string[] {
 
 /** Speaks with the device's own voices (Web Speech API). */
 function speakWithDevice(text: string, slow: boolean, id: number): Promise<void> {
+  // The iPhone's voice follows the silent switch and leaves the audio unable to record; play-and-record
+  // before it speaks is meant to avoid both (the AI's replies always come this way).
+  if (isIOS) useRecordSession("voice");
   return new Promise((resolve) => {
     const parts = slow ? slowParts(text) : chunk(text);
     if (!ttsSupported || parts.length === 0) return resolve();
@@ -406,6 +473,7 @@ let quietSince = 0;
 
 export function stopSpeaking() {
   speakId++;
+  streamWake?.();
   // Only when something was playing: a tap with nothing to cut off should open the mic right away, within the tap.
   if (endPlayback || (ttsSupported && (window.speechSynthesis.speaking || window.speechSynthesis.pending))) quietSince = Date.now();
   stopPlayback();
@@ -475,24 +543,40 @@ export function speakingPaused(): boolean {
   }
 }
 
+type WithAudioSession = Navigator & { audioSession?: { type: string } };
+
+/** Safari's audio mode, shown in the ?debug log. */
+function sessionType(): string {
+  return (navigator as WithAudioSession).audioSession?.type ?? "n/a";
+}
+
+/** iPhone: asks Safari for play-and-record. In that mode sound plays even with the silent switch on, and the
+ * mic can still record after something was played. `force` re-applies it when it already reads so, because
+ * the iPhone's own voice can switch the real audio back to playing only without changing what `type` says. */
+function useRecordSession(why: string, force = false) {
+  const session = (navigator as WithAudioSession).audioSession;
+  if (!session) return;
+  try {
+    if (force && session.type === "play-and-record") session.type = "auto";
+    if (session.type !== "play-and-record") {
+      session.type = "play-and-record";
+      trace(`audio session play-and-record (${why})`);
+    }
+  } catch {
+    // Older Safari: nothing to set.
+  }
+}
+
 /** iPhone: after the app plays any sound (recorded voice, chimes, the AI's voice) the audio stays set up for
  * playing only, and a mic opened then records nothing: the first answer worked, the next ones never did.
- * Before listening, the audio element lets go of its clip and Safari is asked for play-and-record. */
+ * Before listening, the audio element lets go of its clip and Safari is asked for play-and-record again. */
 function freeAudioForMic() {
   if (player && !endPlayback) {
     player.pause();
     player.removeAttribute("src");
     player.load();
   }
-  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession;
-  if (session && session.type !== "play-and-record") {
-    try {
-      session.type = "play-and-record";
-      trace("audio session play-and-record");
-    } catch {
-      // Older Safari: nothing to set.
-    }
-  }
+  useRecordSession("mic", true);
 }
 
 /** Nothing heard by then: give up instead of listening forever. */
@@ -613,7 +697,7 @@ export function listen(cb: ListenCallbacks, { hold = false }: ListenOptions = {}
   const begin = () => {
     if (ended) return;
     if (isIOS) freeAudioForMic();
-    trace(`mic start${hold ? " hold" : ""} (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
+    trace(`mic start${hold ? " hold" : ""} (speaking=${window.speechSynthesis?.speaking}, ${navigator.userActivation?.isActive ? "in tap" : "no tap"}, session=${sessionType()})`);
     if (!hold) later(() => !lastInterim && !delivered && stop(), NO_SPEECH_MS);
     later(stop, hold ? MAX_HOLD_MS : MAX_LISTEN_MS);
     later(() => {

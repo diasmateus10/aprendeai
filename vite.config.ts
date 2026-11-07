@@ -6,6 +6,7 @@ import { ttsApi } from "./server/tts";
 import { pushApi } from "./server/push";
 import { billingApi } from "./server/billing";
 import { accountApi } from "./server/account";
+import { talkApi } from "./server/talk";
 
 export default defineConfig(({ mode }) => {
   // Loads every variable from app/.env (no VITE_ prefix), so the key stays server-side only.
@@ -19,6 +20,11 @@ export default defineConfig(({ mode }) => {
       pushApi(),
       billingApi(),
       accountApi(),
+      talkApi({
+        anthropicKey: env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_API_KEY,
+        speechKey: env.AZURE_SPEECH_KEY || process.env.AZURE_SPEECH_KEY,
+        speechRegion: env.AZURE_SPEECH_REGION || process.env.AZURE_SPEECH_REGION,
+      }),
       ttsApi(env.AZURE_SPEECH_KEY || process.env.AZURE_SPEECH_KEY, env.AZURE_SPEECH_REGION || process.env.AZURE_SPEECH_REGION), ...(mobile ? [basicSsl()] : [])],
     server: { port: mobile ? 5174 : 5173, host: mobile },
   };

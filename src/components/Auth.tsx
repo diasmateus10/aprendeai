@@ -67,8 +67,11 @@ export function AuthScreen() {
     setInfo(null);
     const result = tab === "signin" ? await signIn(email.trim(), password) : await signUp(email.trim(), password);
     setBusy(false);
-    if (!result.ok) setError(result.error);
-    else if (result.needsConfirmation) {
+    if (!result.ok) {
+      setError(result.error);
+      // Already has an account (wrong password): the "Já tenho conta" tab is where they belong.
+      if (result.existingAccount) setTab("signin");
+    } else if (result.needsConfirmation) {
       setInfo(`Enviamos um link de confirmação para ${email.trim()}. Abra o e-mail, toque no link e depois entre aqui.`);
       setTab("signin");
     }

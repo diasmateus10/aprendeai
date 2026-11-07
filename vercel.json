@@ -6,6 +6,9 @@
   "functions": {
     "api/chat.ts": {
       "maxDuration": 60
+    },
+    "api/talk.ts": {
+      "maxDuration": 60
     }
   },
   "cleanUrls": true

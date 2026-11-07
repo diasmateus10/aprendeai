@@ -16,7 +16,7 @@ import { FREE_CHATS_PER_DAY, PAYWALL_MARK, PREMIUM_CHAT_MINUTES } from "../src/d
 // ANTHROPIC_MODEL overrides it, e.g. claude-opus-5-5 for richer conversation at a much higher cost.
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-haiku-5-5";
 // Short spoken replies need little reasoning, and less effort means the first word comes sooner.
-const EFFORT = "low";
+const EFFORT = "low" as const;
 const MAX_TURNS = 60;
 const MAX_CHARS = 1500;
 
@@ -41,10 +41,16 @@ ${stylePrompt(style)}
 
 Your replies are read aloud by text-to-speech and the learner answers by voice, so:
 - Write plain spoken text only: no markdown, asterisks, lists or emojis.
-- A correction, when your correction setting allows one, is a single line that starts with "💡", is written in Brazilian Portuguese, and is always the very last line of the reply, after your question.
+- A correction, when your correction setting allows one, is a single line that starts with "💡", is written in Brazilian Portuguese, and is always the very last line of the reply, after your question. Shape it as: 💡 "what they said" → "the better way" (one short reason in Brazilian Portuguese), e.g. 💡 "I go to the beach yesterday" → "I went to the beach yesterday" (passado de go é went).
 - End almost every reply with a question that keeps the conversation going.
-- The learner's message is a speech-recognition transcript: ignore missing punctuation and capitalization.
-- If the learner writes in Portuguese or seems stuck, help them say it in English, then continue.
+- React to what the learner said and move on. Don't repeat or paraphrase their sentence back to them; the correction line is the only place their words are quoted.
+- The learner's message is a speech-recognition transcript: ignore missing punctuation and capitalization. It may contain misheard words: when a word doesn't fit, assume the closest word that makes sense here and answer that. Only when you really can't tell what they meant, say so in a few words and ask them to say it again; never answer something they didn't say.
+- If the message is empty, just "um", "uh" or noise, encourage them and ask your question again in a simpler way.
+- If the learner writes in Portuguese or seems stuck, help them say it in English, then continue.${
+    level === "iniciante"
+      ? `\n- The learner is a beginner: after your question, give them a short English sentence starter they can finish, e.g. You can say: "I like..."`
+      : ""
+  }
 Start by opening the scenario in your chosen style.`;
 }
 
@@ -112,10 +118,18 @@ Palavras que você falou: up to five English words the child said, separated by 
 Para treinar: up to two corrections as "frase dita → frase certa", separated by " · ", or "Nada! Você mandou muito bem!".
 Never criticize; keep it short and kind.`;
 
-type ChatBody = {
+// "Traduzir": what the partner just said, in Portuguese, so a learner who didn't understand can keep going.
+const TRANSLATE_PROMPT = `You translate one line from an English conversation partner into natural Brazilian Portuguese for a Brazilian learner of English.
+Reply with the translation only: no quotes, notes, explanations or the original English. Keep the tone (casual, formal, playful) and any question.`;
+
+const KIDS_TRANSLATE_PROMPT = `You translate one line that Kiko, a friendly parrot, said in English to a Brazilian child into simple, warm Brazilian Portuguese.
+Reply with the translation only: no quotes, notes or the original English.`;
+
+export type ChatBody = {
   topic: string;
   level: string;
-  mode: "chat" | "feedback";
+  /** "translate": the learner tapped "Traduzir" on one of the partner's lines (messages = that line). */
+  mode: "chat" | "feedback" | "translate";
   messages: { role: "user" | "assistant"; content: string }[];
   /** Untrusted; stylePrompt() only uses known option ids. */
   style?: Partial<Record<keyof AiStyle, unknown>>;
@@ -125,11 +139,11 @@ type ChatBody = {
   sessionId?: string;
 };
 
-function parseBody(raw: string): ChatBody | null {
+export function parseBody(raw: string): ChatBody | null {
   try {
     const b = JSON.parse(raw);
     if (!TOPICS.some((t) => t.id === b.topic) && !KIDS_TOPICS.some((t) => t.id === b.topic)) return null;
-    if (b.mode !== "chat" && b.mode !== "feedback") return null;
+    if (b.mode !== "chat" && b.mode !== "feedback" && b.mode !== "translate") return null;
     if (!Array.isArray(b.messages) || b.messages.length > MAX_TURNS) return null;
     const messages = b.messages.map((m: { role: unknown; content: unknown }) => {
       if ((m.role !== "user" && m.role !== "assistant") || typeof m.content !== "string") throw new Error("bad message");
@@ -143,12 +157,12 @@ function parseBody(raw: string): ChatBody | null {
   }
 }
 
-export function readBody(req: IncomingMessage): Promise<string> {
+export function readBody(req: IncomingMessage, maxChars = 200_000): Promise<string> {
   return new Promise((resolve, reject) => {
     let data = "";
     req.on("data", (c) => {
       data += c;
-      if (data.length > 200_000) reject(new Error("too large"));
+      if (data.length > maxChars) reject(new Error("too large"));
     });
     req.on("end", () => resolve(data));
     req.on("error", reject);
@@ -167,7 +181,7 @@ export function clientIp(req: IncomingMessage): string {
 const REQUESTS_PER_DAY = Number(process.env.CHAT_REQUESTS_PER_DAY ?? 400);
 
 /** Error to answer with, or null when the conversation may go on. Counts only what is allowed. */
-async function overLimit(userId: string, newSession: boolean): Promise<{ status: number; text: string } | null> {
+export async function overLimit(userId: string, newSession: boolean): Promise<{ status: number; text: string } | null> {
   const who = `user:${userId}`;
   if (!(await allow(who, "chat_request", REQUESTS_PER_DAY))) {
     return { status: 429, text: "Limite diário de mensagens atingido. Volte amanhã!" };
@@ -217,36 +231,13 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
     return;
   }
 
-  const kids = body.topic.startsWith("kids-");
-  let messages: Anthropic.Beta.BetaMessageParam[];
-  let system: string;
-  if (body.mode === "chat") {
-    // Adults' partner also gets what this learner struggles with, from the insights agent.
-    system = kids ? kidsPrompt(body.topic, body.age) : systemPrompt(body.topic, body.level, body.style) + (await partnerNotes(user.id));
-    // The opening turn has no learner message yet; a neutral cue starts the scenario.
-    messages = [{ role: "user", content: "(The learner is ready. Start the conversation.)" }, ...body.messages];
-  } else {
-    system = kids ? KIDS_FEEDBACK_PROMPT : FEEDBACK_PROMPT;
-    const transcript = body.messages
-      .map((m) => `${m.role === "user" ? "Learner" : "Partner"}: ${m.content}`)
-      .join("\n");
-    messages = [{ role: "user", content: transcript || "(The learner did not say anything.)" }];
-  }
+  const { kids, system, messages } = await buildRequest(body, user.id);
 
   res.setHeader("Content-Type", "text/plain; charset=utf-8");
   res.setHeader("Cache-Control", "no-store");
   const started = Date.now();
   try {
-    // Haiku has no server-side fallback; the other models retry a safety decline on Anthropic's recommended model.
-    const fallback = !MODEL.startsWith("claude-haiku");
-    const stream = client.beta.messages.stream({
-      model: MODEL,
-      max_tokens: 2048,
-      system,
-      messages,
-      output_config: { effort: EFFORT },
-      ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
-    });
+    const stream = client.beta.messages.stream(modelParams(system, messages));
     let reply = "";
     for await (const event of stream) {
       if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
@@ -259,7 +250,7 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
     const answered = final.stop_reason !== "refusal" && reply.length > 0;
     if (!answered) res.write("(Não consegui responder a isso. Vamos mudar de assunto?)");
     // History (adult mode only). Saved before ending the response: serverless work after it may be cut off.
-    if (!kids && body.sessionId && answered) {
+    if (!kids && body.sessionId && answered && body.mode !== "translate") {
       if (body.mode === "chat") await saveConversation(user.id, body.sessionId, body.topic, body.level, body.messages, reply);
       else {
         await saveFeedback(user.id, body.sessionId, reply);
@@ -268,21 +259,64 @@ export async function handleChat(client: Anthropic, rawBody: string, res: Server
     }
     res.end();
   } catch (error) {
-    let message = "Erro ao falar com a IA. Tente de novo.";
-    if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
-      message = "Chave da API inválida ou sem permissão. Confira ANTHROPIC_API_KEY.";
-    } else if (error instanceof Anthropic.RateLimitError) {
-      message = "A IA está muito ocupada agora. Espere um minuto e tente de novo.";
-    } else if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
-      message = "A conta da Anthropic está sem créditos. Adicione créditos no Console.";
-    } else if (error instanceof Anthropic.APIConnectionTimeoutError) {
-      message = "A IA demorou demais para responder. Tente de novo.";
-    }
-    if (error instanceof Anthropic.APIError) console.error(`[chat] Anthropic API error ${error.status}:`, error.message);
-    else console.error("[chat]", error);
     if (!res.headersSent) res.statusCode = 502;
-    res.end(`\n⚠️ ${message}`);
+    res.end(`\n⚠️ ${aiErrorMessage(error)}`);
   }
+}
+
+/** System prompt and messages for a conversation turn ("chat") or the closing feedback. */
+export async function buildRequest(
+  body: ChatBody,
+  userId: string,
+): Promise<{ kids: boolean; system: string; messages: Anthropic.Beta.BetaMessageParam[] }> {
+  const kids = body.topic.startsWith("kids-");
+  if (body.mode === "chat") {
+    // Adults' partner also gets what this learner struggles with, from the insights agent.
+    const system = kids ? kidsPrompt(body.topic, body.age) : systemPrompt(body.topic, body.level, body.style) + (await partnerNotes(userId));
+    // The opening turn has no learner message yet; a neutral cue starts the scenario.
+    return { kids, system, messages: [{ role: "user", content: "(The learner is ready. Start the conversation.)" }, ...body.messages] };
+  }
+  if (body.mode === "translate") {
+    const line = body.messages.at(-1)?.content ?? "";
+    return { kids, system: kids ? KIDS_TRANSLATE_PROMPT : TRANSLATE_PROMPT, messages: [{ role: "user", content: line || "(empty)" }] };
+  }
+  const transcript = body.messages.map((m) => `${m.role === "user" ? "Learner" : "Partner"}: ${m.content}`).join("\n");
+  return {
+    kids,
+    system: kids ? KIDS_FEEDBACK_PROMPT : FEEDBACK_PROMPT,
+    messages: [{ role: "user", content: transcript || "(The learner did not say anything.)" }],
+  };
+}
+
+/** Request parameters shared by the streamed text chat and the voice turn. */
+export function modelParams(system: string, messages: Anthropic.Beta.BetaMessageParam[]) {
+  // Haiku has no server-side fallback; the other models retry a safety decline on Anthropic's recommended model.
+  const fallback = !MODEL.startsWith("claude-haiku");
+  return {
+    model: MODEL,
+    max_tokens: 2048,
+    system,
+    messages,
+    output_config: { effort: EFFORT },
+    ...(fallback ? { betas: ["server-side-fallback-2026-07-01"], fallbacks: "default" as const } : {}),
+  };
+}
+
+/** What the learner sees when the AI call fails. */
+export function aiErrorMessage(error: unknown): string {
+  let message = "Erro ao falar com a IA. Tente de novo.";
+  if (error instanceof Anthropic.AuthenticationError || error instanceof Anthropic.PermissionDeniedError) {
+    message = "Chave da API inválida ou sem permissão. Confira ANTHROPIC_API_KEY.";
+  } else if (error instanceof Anthropic.RateLimitError) {
+    message = "A IA está muito ocupada agora. Espere um minuto e tente de novo.";
+  } else if (error instanceof Anthropic.BadRequestError && /credit balance/i.test(error.message)) {
+    message = "A conta da Anthropic está sem créditos. Adicione créditos no Console.";
+  } else if (error instanceof Anthropic.APIConnectionTimeoutError) {
+    message = "A IA demorou demais para responder. Tente de novo.";
+  }
+  if (error instanceof Anthropic.APIError) console.error(`[chat] Anthropic API error ${error.status}:`, error.message);
+  else console.error("[chat]", error);
+  return message;
 }
 
 export function chatApi(apiKey: string | undefined): Plugin {

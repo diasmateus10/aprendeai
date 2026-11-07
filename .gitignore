@@ -7,3 +7,10 @@ dist
 !.env.example
 
 .vercel
+
+# iPhone (WebKit) screenshots and session from scripts/iphone.mjs
+.iphone
+
+# Test results (Playwright)
+e2e-report
+e2e-results

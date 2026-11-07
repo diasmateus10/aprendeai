@@ -112,6 +112,19 @@ npm run deploy:trigger   # publica as tarefas
 
 O reconhecimento de voz funciona melhor no Chrome, no Edge e no Safari do iPhone.
 
+## Testes e publicação
+
+Um robô aluno usa o app num iPhone (WebKit, o motor do Safari) e num Android (Chromium). Ele cria a conta, faz o nivelamento, completa a Unidade 1 respondendo todos os tipos de exercício (inclusive falando no microfone), erra até perder as vidas, faz flashcards e conversa com a IA por voz e por teclado. Supabase, IA, voz e microfone são simulados em [`e2e/support/`](e2e/support/), então os testes não usam rede, não gastam créditos da API e dão o mesmo resultado a cada vez.
+
+```bash
+npm test                 # unitários + jornadas (no servidor de desenvolvimento)
+npm run test:e2e:ui      # abre as jornadas no modo visual do Playwright
+npm run release:check    # rotina antes de produção: build, tipos, unitários e jornadas no build final
+npm run deploy           # roda o release:check e só publica na Vercel se tudo passar
+```
+
+Quando uma jornada falha, `npm run test:e2e:report` mostra a tela, o passo a passo (trace) e o motivo.
+
 ## Estrutura
 
 ```
