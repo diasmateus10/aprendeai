@@ -1,0 +1,45 @@
+# Daily check of the voice conversation in PRODUCTION (e2e-prod/, see playwright.prod.config.ts).
+# A robot learner signs in, talks to the AI through a simulated microphone and checks that it was heard and
+# answered with a voice. When it fails, GitHub e-mails whoever last changed this schedule, and the run keeps the
+# report (screenshots, video, trace) as an artifact.
+#
+# Secrets (Settings → Secrets and variables → Actions): SMOKE_EMAIL and SMOKE_PASSWORD, the robot account.
+# Run it now: Actions → "Teste diário da conversa por voz" → Run workflow (or `gh workflow run voice-daily.yml`).
+
+name: Teste diário da conversa por voz
+
+on:
+  schedule:
+    - cron: "0 10 * * *" # 07:00 in Brasília
+  workflow_dispatch:
+
+concurrency:
+  group: voice-daily
+  cancel-in-progress: false
+
+jobs:
+  voz-em-producao:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - name: Conversa por voz em produção
+        run: npm run test:prod
+        env:
+          SMOKE_EMAIL: ${{ secrets.SMOKE_EMAIL }}
+          SMOKE_PASSWORD: ${{ secrets.SMOKE_PASSWORD }}
+      - name: Relatório da falha
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: relatorio-teste-voz
+          path: |
+            e2e-prod-report
+            e2e-prod-results
+          retention-days: 14

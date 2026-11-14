@@ -14,3 +14,7 @@ dist
 # Test results (Playwright)
 e2e-report
 e2e-results
+
+# Daily production check (Playwright, e2e-prod/)
+e2e-prod-report
+e2e-prod-results

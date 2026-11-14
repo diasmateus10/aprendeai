@@ -17,7 +17,8 @@
     "test:e2e:ui": "playwright test --ui",
     "test:e2e:report": "playwright show-report e2e-report",
     "release:check": "node scripts/release-check.mjs",
-    "deploy": "npm run release:check && npx vercel@latest deploy --prod --yes --archive=tgz"
+    "deploy": "npm run release:check && npx vercel@latest deploy --prod --yes --archive=tgz",
+    "test:prod": "playwright test -c playwright.prod.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.2.0",
