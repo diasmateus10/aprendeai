@@ -599,7 +599,7 @@ let micEverStarted = false;
 export const speechLog: string[] = [];
 let logStart = 0;
 
-function trace(msg: string) {
+export function trace(msg: string) {
   logStart ||= Date.now();
   speechLog.push(`${((Date.now() - logStart) / 1000).toFixed(1)}s ${msg}`);
   if (speechLog.length > 80) speechLog.shift();

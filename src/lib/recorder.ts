@@ -18,8 +18,8 @@ export interface Recording {
   wav: Blob | null;
   /** How long the orb was held. */
   ms: number;
-  /** Why there is no audio. */
-  problem: "short" | "silent" | null;
+  /** Why there is no audio ("opening": let go before the microphone had finished opening). */
+  problem: "short" | "opening" | "silent" | null;
 }
 
 /** Linear-interpolation resample of mono samples to `to` Hz. */
@@ -98,17 +98,36 @@ export class MicRecorder {
   private startedAt = 0;
   private peak = 0;
   private opening: Promise<void> | null = null;
+  /** Set by close(): a microphone that finishes opening afterwards is released at once. */
+  private closed = false;
+  /** Audio callbacks during the current hold, and the context's state when it began (shown with ?debug). */
+  private callbacks = 0;
+  private stateAtStart = "";
   /** Called with the input level (0..1) while recording, for the orb to pulse. */
   onLevel: ((level: number) => void) | null = null;
+
+  /** What the mic delivered, for the ?debug log: tells a stopped audio context from a muted microphone. */
+  diagnostics(): string {
+    const track = this.stream?.getAudioTracks()[0];
+    const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession?.type ?? "n/a";
+    return (
+      `ctx ${this.stateAtStart}->${this.ctx?.state ?? "none"} rate=${this.ctx?.sampleRate ?? 0}` +
+      ` callbacks=${this.callbacks} peak=${this.peak.toFixed(4)}` +
+      ` track=${track ? `${track.readyState}${track.muted ? " muted" : ""}${track.enabled ? "" : " disabled"} ${track.getSettings?.().sampleRate ?? "?"}Hz` : "none"}` +
+      ` session=${session}`
+    );
+  }
 
   /** Starts keeping samples. Call it from the press itself: the iPhone only starts audio inside a tap. */
   start(): Promise<void> {
     this.chunks = [];
     this.peak = 0;
+    this.callbacks = 0;
     this.startedAt = Date.now();
     this.recording = true;
     // Created and resumed synchronously, inside the tap.
     this.ctx ??= new AudioContext();
+    this.stateAtStart = this.ctx.state;
     void this.ctx.resume();
     this.opening ??= this.open().catch((error) => {
       this.opening = null;
@@ -119,15 +138,23 @@ export class MicRecorder {
   }
 
   private async open() {
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true, channelCount: 1 },
     });
-    const ctx = this.ctx!;
-    const source = ctx.createMediaStreamSource(this.stream);
+    // Closed while the iPhone was still opening it (or asking for permission): otherwise this microphone would
+    // stay on with nothing listening, and the next recorder only heard silence.
+    if (this.closed || !this.ctx) {
+      stream.getTracks().forEach((t) => t.stop());
+      return;
+    }
+    this.stream = stream;
+    const ctx = this.ctx;
+    const source = ctx.createMediaStreamSource(stream);
     // ScriptProcessor is deprecated but works everywhere, including the Safari versions without AudioWorklet modules.
     const node = ctx.createScriptProcessor(4096, 1, 1);
     node.onaudioprocess = (e) => {
       if (!this.recording) return;
+      this.callbacks++;
       const data = new Float32Array(e.inputBuffer.getChannelData(0));
       let max = 0;
       for (let i = 0; i < data.length; i++) max = Math.max(max, Math.abs(data[i]));
@@ -153,6 +180,8 @@ export class MicRecorder {
     this.recording = false;
     this.onLevel?.(0);
     if (ms < MIN_HOLD_MS) return { wav: null, ms, problem: "short" };
+    // Nothing was recorded because the microphone isn't open yet: that isn't silence, so it stays open for the next press.
+    if (!this.node) return { wav: null, ms, problem: "opening" };
     if (this.peak < SILENT_PEAK) return { wav: null, ms, problem: "silent" };
     const total = this.chunks.reduce((n, c) => n + c.length, 0);
     const all = new Float32Array(total);
@@ -176,6 +205,7 @@ export class MicRecorder {
 
   /** Releases the microphone (end of the conversation, or the tab went to the background). */
   close() {
+    this.closed = true;
     this.cancel();
     this.node?.disconnect();
     this.node = null;

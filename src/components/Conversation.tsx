@@ -17,6 +17,7 @@ import {
   speechLog,
   stopSpeaking,
   sttSupported,
+  trace,
   type ListenHandle,
   type ReplyVoice,
 } from "../lib/speech";
@@ -612,13 +613,19 @@ export function Conversation({
       setPhase("listening");
       const rec = (recorder.current ??= new MicRecorder());
       rec.onLevel = (level) => orbRef.current?.style.setProperty("--level", level.toFixed(2));
-      rec.start().catch((err: Error) => {
-        setHolding(false);
-        setPhase("idle");
-        setMicError(
-          err.name === "NotAllowedError" ? "Permita o uso do microfone no navegador." : "Não consegui abrir o microfone. Tente de novo.",
-        );
-      });
+      trace(`rec press (${navigator.userActivation?.isActive ? "in tap" : "no tap"})`);
+      rec
+        .start()
+        .then(() => recorder.current === rec && trace(`rec open ${rec.diagnostics()}`))
+        .catch((err: Error) => {
+          trace(`rec failed ${err.name}: ${err.message}`);
+          if (recorder.current !== rec) return;
+          setHolding(false);
+          setPhase("idle");
+          setMicError(
+            err.name === "NotAllowedError" ? "Permita o uso do microfone no navegador." : "Não consegui abrir o microfone. Tente de novo.",
+          );
+        });
       // A stuck finger (or key) doesn't record forever.
       holdTimer.current = setTimeout(() => void releaseOrb(), MAX_HOLD_MS);
       return;
@@ -638,10 +645,16 @@ export function Conversation({
       return;
     }
     const recording = await rec.stop();
+    trace(`rec release ${recording.ms}ms ${recording.problem ?? `wav ${recording.wav?.size}B`} ${rec.diagnostics()}`);
     if (recording.wav) return talk(recording.wav);
     setPhase("idle");
     if (recording.problem === "short") {
       setMicError("Segure a bolinha enquanto fala e solte quando terminar.");
+      return;
+    }
+    if (recording.problem === "opening") {
+      // The first press of a conversation (above all while the iPhone asks for permission): the mic keeps opening.
+      setMicError("O microfone está ligando. Segure a bolinha de novo e fale.");
       return;
     }
     // Silence: reopening the mic on the next press fixes an iPhone left in playback-only audio.
