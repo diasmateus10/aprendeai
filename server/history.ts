@@ -45,6 +45,64 @@ export async function saveFeedback(userId: string, sessionId: string, feedback: 
   if (error) console.error("[history] feedback failed:", error.message);
 }
 
+// "Fale sobre qualquer coisa" (topic "free"): the partner rereads the learner's past free conversations and opens
+// by offering subjects from them, instead of the same "what do you want to talk about?" every time.
+
+/** Past free conversations the partner rereads, and how much of them goes into its instructions (~1.5k tokens). */
+const FREE_MEMORY_SESSIONS = 8;
+const FREE_MEMORY_CHARS = 6000;
+const FREE_MEMORY_PER_SESSION = 1200;
+
+export interface PastSession {
+  messages: Turn[];
+  started_at: string;
+}
+
+const clip = (text: string, max: number) => {
+  const t = text.replace(/\s+/g, " ").trim();
+  return t.length > max ? `${t.slice(0, max - 1)}…` : t;
+};
+
+/** The learner's past free conversations as a short dialogue per conversation, newest first; "" when there are none. */
+export function formatFreeMemory(sessions: PastSession[], now = Date.now()): string {
+  const blocks: string[] = [];
+  let total = 0;
+  for (const s of sessions) {
+    if (!s.messages.some((m) => m.role === "user" && m.content.trim())) continue;
+    const days = Math.floor((now - Date.parse(s.started_at)) / 86_400_000);
+    const when = days <= 0 ? "today" : days === 1 ? "yesterday" : `${days} days ago`;
+    let block = `Conversation ${when}:`;
+    for (const m of s.messages) {
+      // The partner's 💡 correction line is left out: what matters here is what was talked about.
+      const line = m.role === "user" ? `Learner: ${clip(m.content, 220)}` : `You: ${clip(m.content.split("💡")[0], 160)}`;
+      if (block.length + line.length > FREE_MEMORY_PER_SESSION) {
+        block += "\n…";
+        break;
+      }
+      block += `\n${line}`;
+    }
+    if (blocks.length && total + block.length > FREE_MEMORY_CHARS) break;
+    blocks.push(block);
+    total += block.length;
+  }
+  return blocks.join("\n\n");
+}
+
+/** Reads the learner's past free conversations (not the current one) for the partner; "" when there are none. */
+export async function freeTalkMemory(userId: string, currentSessionId?: string): Promise<string> {
+  const supabase = db();
+  if (!supabase) return "";
+  let query = supabase.from("chat_sessions").select("messages, started_at").eq("user_id", userId).eq("topic", "free").gt("user_turns", 0);
+  if (currentSessionId) query = query.neq("id", currentSessionId);
+  const { data, error } = await query.order("started_at", { ascending: false }).limit(FREE_MEMORY_SESSIONS);
+  if (error) {
+    // Without the memory the conversation still opens, just with the generic greeting.
+    console.error("[history] free memory failed:", error.message);
+    return "";
+  }
+  return formatFreeMemory((data ?? []) as PastSession[]);
+}
+
 interface Insights {
   summary: string;
   weak_points: { area: string; evidence: string[]; tip: string }[];
